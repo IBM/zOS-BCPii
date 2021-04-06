@@ -69,7 +69,7 @@ parse arg argString
 if GetArgs(argString) <> 0 then
    exit -1
 
-say 'Staring RXQUERY1 for CPC name:'||CPCname||' and LPAR name:'||LPARname
+say 'Starting RXQUERY1 for CPC name:'||CPCname||' and LPAR name:'||LPARname
 call IncludeConstants
 
 call JSON_getToolkitConstants
@@ -92,8 +92,6 @@ if RESULT <> 0 then
 if getCPCInfo() then
   do
     call QueryCPC
-
-    call QueryCPCTopology
 
     if getLPARinfo() then
       do
@@ -239,39 +237,6 @@ Say 'CPC SE LAN 1, primary IPv4 address:('||LAN1IP||')'
 Say 'CPC SE MAC LAN interface 2:('||MACaddress2||')'
 Say 'CPC SE LAN 2, primary IPv4 address:('||LAN2IP||')'
 Say
-
-return 0
-
-/*******************************************************/
-/* Function:  QueryCPCTopology                         */
-/*                                                     */
-/* For CPC retrieve:                                   */
-/*          - LPAR Resource Assignment                 */
-/*                                                     */
-/*                                                     */
-/*******************************************************/
-QueryCPCTopology:
-/* Now use the retrieved CPC uri and CPC target-name
-   to retrieve LPAR Resource Assignment information
-
-   GET <CPC uri>/operations/get-lpar-resource-assignments
-*/
-
-CPCuriTop = CPCuri||'/operations/get-lpar-resource-assignments'
-CPCTopologyResponse = GetRequest(CPCuriTop,CPCtargetName)
-
-if CPCTopologyResponse = '' Then
-  do
-    say 'fatalError ** failed to obtain LPAR resource assignment **'
-    return 0
-  end
-
-/* Parse the response to make sure it's valid JSON
-   and then retrieve or traverse the content as needed
-*/
-call JSON_parseJson CPCTopologyResponse
-
-Say 'successfully retrieved LPAR resource assignment'
 
 return 0
 

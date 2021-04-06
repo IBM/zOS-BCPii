@@ -19,6 +19,15 @@ This samples uses HWIREST API to:
     - Online Logical ICF #
     - Reserved Logical ICF #
 
+## System Prep work
+- Store RXQUERY1 into a data set
+- Ensure your z/OS user ID has READ access to the following FACILITY Class Profiles
+    - HWI.TARGET.netid.nau
+    - HWI.TARGET.netid.nau.imagename
+
+    <p>where netid.nau represents the 3– to 17– character SNA name of the particular CPC
+    and imagename represents the 1– to 8- character LPAR name that will be used as input</p>
+
 
 ## Invocation
 **Syntax**:
@@ -31,6 +40,7 @@ This samples uses HWIREST API to:
   - *–v* is an optional parameter that will turn on verbose JSON parser tracing
 
 **sample invocation in TSO:**
+<br>RXQUERY1 has been copied into data set HWI.HWIREST.REXX
 ```
 ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4'
 ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4 -V'
@@ -46,20 +56,18 @@ ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4 -V'
  HTTP Status: (200)
  SE DateTime: (Thu, 18 Mar 2021 15:11:00 GMT)
  SE requestId: (Sxd7277f62-87f0-11eb-a206-00106f253850.1 Rx1e)
- Response Body: ({"cpcs":[{"name":"T256","se-version":"2.15.0","location":"local","object-uri":"/api/cpcs/f2b5f3ce-f912-343e-8704-32
- e2509b2911","target-name":"IBM390PS.T256"}]})
+ Response Body: ({"cpcs":[{"name":"T256","se-version":"2.15.0","location":"local","object-uri":"/api/cpcs/111111111-aaaa-bbbb-8888-33333333333","target-name":"IBM390PS.T256"}]})
 
  <-------
 
-
  Successfully obtained CPC Info:
-   uri:/api/cpcs/f2b5f3ce-f912-343e-8704-32e2509b2911
+   uri:/api/cpcs/111111111-aaaa-bbbb-8888-33333333333
    target-name:IBM390PS.T256
 
 
  ------->
  GET request being made....
- uri:/api/cpcs/f2b5f3ce-f912-343e-8704-32e2509b2911?properties=storage-total-installed,storage-customer,lan-interface1-address,lan-i
+ uri:/api/cpcs/111111111-aaaa-bbbb-8888-33333333333?properties=storage-total-installed,storage-customer,lan-interface1-address,lan-i
  nterface2-address,network1-ipv4-pri-ipaddr,network2-ipv4-pri-ipaddr&cached-acceptable=true
  targetname:IBM390PS.T256
 
@@ -72,7 +80,6 @@ ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4 -V'
 
  <-------
 
-
  CPC total storage available:(4620288)
  CPC storage available to LPARs:(4456448)
  CPC SE MAC LAN interface 1:(00106f253852)
@@ -80,25 +87,9 @@ ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4 -V'
  CPC SE MAC LAN interface 2:(00106f253853)
  CPC SE LAN 2, primary IPv4 address:(false)
 
-
  ------->
  GET request being made....
- uri:/api/cpcs/f2b5f3ce-f912-343e-8704-32e2509b2911/operations/get-lpar-resource-assignments
- targetname:IBM390PS.T256
-
- Rexx RC: (0)
- HTTP Status: (200)
- SE DateTime: (Thu, 18 Mar 2021 15:11:00 GMT)
-1SE requestId: (Sxd7277f62-87f0-11eb-a206-00106f253850.1 Rx20)
- Response Body: ({"lpar-resource-assignments-info":<redacted>})
-
- <-------
-
- successfully retrieved LPAR resource assignment
-
- ------->
- GET request being made....
- uri:/api/cpcs/f2b5f3ce-f912-343e-8704-32e2509b2911/logical-partitions?name=TA4
+ uri:/api/cpcs/111111111-aaaa-bbbb-8888-33333333333/logical-partitions?name=TA4
  targetname:IBM390PS.T256
 
  Rexx RC: (0)
@@ -110,15 +101,14 @@ ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4 -V'
 
  <-------
 
-
  Successfully obtained LPAR Info:
-   uri:/api/logical-partitions/a347633b-d493-3f7c-a11f-f882dd27dcfb
+   uri:/api/logical-partitions/aaaaaaaaa-dddd-3333-aaaa-fffffffff
    target-name:IBM390PS.T256.TA4
 
 
  ------->
  GET request being made....
- uri:/api/logical-partitions/a347633b-d493-3f7c-a11f-f882dd27dcfb?properties=processor-usage,number-general-purpose-processors,numbe
+ uri:/api/logical-partitions/aaaaaaaaa-dddd-3333-aaaa-fffffffff?properties=processor-usage,number-general-purpose-processors,numbe
  r-reserved-general-purpose-processors,number-general-purpose-cores,number-reserved-general-purpose-cores,number-ziip-processors,num
  ber-reserved-ziip-processors,number-ziip-cores,number-reserved-ziip-cores,number-icf-processors,number-reserved-icf-processors,numb
  er-icf-cores,number-reserved-icf-cores&cached-acceptable=true
