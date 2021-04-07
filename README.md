@@ -16,6 +16,8 @@ This repository contains samples that take advantage of new z/OS BCPii HWIREST i
 - mimimum BCPii microcode level applied to the corresponding SE and HMC:
   - SE 2.15.0 with MCL P46598.370, Bundle S38
   - HMC 2.15.0 with MCL P46686.001, Bundle H25
+- minimum BCPii level
+  - z/OS 2.4 with APAR OA60351
 
 <b>HWIREST Interface Considerations</b>
 - C, Assembler
