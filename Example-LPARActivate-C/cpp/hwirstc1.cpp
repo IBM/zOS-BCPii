@@ -93,7 +93,7 @@ int main(int argc, char **argv)
   else
   {
     printf("ERROR: Wrong number of arguments\n");
-    printf("USAGE: HWIRSTC1 <CPCname> <LPARname>'\n");
+    printf("USAGE: HWIRSTC1 <CPCname> <LPARname>\n");
   }
 
   return response;
@@ -673,7 +673,7 @@ bool activateLPAR()
 
   char *LPARstatusValue = NULL;
   char *LPARnextActProfile = NULL;
-  char *loadUri = (char *)malloc(defaultLen2K);
+  char *activateUri = (char *)malloc(defaultLen2K);
   char *requestBody = (char *)malloc(defaultLen64K);
   char *description = "activate LPAR";
 
@@ -695,11 +695,11 @@ bool activateLPAR()
   */
   if (getNextActivationProfile(&LPARnextActProfile))
   {
-    memset(loadUri, 0, defaultLen2K);
+    memset(activateUri, 0, defaultLen2K);
     memset(requestBody, 0, defaultLen64K);
 
-    strcpy(loadUri, LPARuri);
-    strcat(loadUri, "/operations/activate");
+    strcpy(activateUri, LPARuri);
+    strcat(activateUri, "/operations/activate");
 
     strcpy(requestBody, "{");
     strcat(requestBody, "\"activation-profile-name\":\"");
@@ -707,13 +707,13 @@ bool activateLPAR()
     strcat(requestBody, "\",\"force\":true");
     strcat(requestBody, "}");
 
-    actionSuccess = asyncPostWorker(loadUri, LPARtargetName,
+    actionSuccess = asyncPostWorker(activateUri, LPARtargetName,
                                     requestBody, description);
 
     getStatusSuccess = getLPARStatus(&LPARstatusValue);
   }
 
-  free(loadUri);
+  free(activateUri);
   free(requestBody);
 
   return actionSuccess;
