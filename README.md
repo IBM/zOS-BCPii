@@ -43,6 +43,7 @@ POLL to determine if the operation was successful.
 
 <br/><br/><b>Publication References:</b>
 - Syntax of HWIREST and other useful BCPii information: [**IBM z/OS MVS Programming: Callable Services for High-Level Languages**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.4.0/com.ibm.zos.v2r4.ieac100/uhmis.htm)
+    - [**z/OS MVS Programming: Callable Services for High-Level Languages PDF**](https://www-01.ibm.com/servers/resourcelink/svc00100.nsf/pages/zOSV2R4sa231377?OpenDocument)  
 
 - Supported REST API operations: [**Hardware Management Console Web Services API, Appendix A, available on Resource Link:**](http://www.ibm.com/servers/resourcelink) <br/> Library -> z15 -> Web Services API
 
