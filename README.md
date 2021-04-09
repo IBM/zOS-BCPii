@@ -36,6 +36,13 @@ This repository contains samples that take advantage of new z/OS BCPii HWIREST i
 
 This sample demonstrates how to use the BCPii HWIREST REXX interface to query CPC and LPAR information.
 
+<br/> *Under Construction:* 
+<br/>**Example-LPARActivate-C**
+  
+This sample demonstrates how to use the BCPii HWIREST C interface to activate an LPAR and POLL to determine if the operation was successful.
+
+![under construction](images/construction.png)
+
 <br/><br/><b>Publication References:</b>
 - Syntax of HWIREST and other useful BCPii information: [**IBM z/OS MVS Programming: Callable Services for High-Level Languages**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.4.0/com.ibm.zos.v2r4.ieac100/uhmis.htm)
     - [**z/OS MVS Programming: Callable Services for High-Level Languages PDF**](https://www-01.ibm.com/servers/resourcelink/svc00100.nsf/pages/zOSV2R4sa231377?OpenDocument)  
