@@ -18,7 +18,7 @@
 * End of Copyright and License                                        *
 ***********************************************************************
 *                                                                     *
-*    MODULE NAME= HWIRTC1                                             *
+*    MODULE NAME= HWIRSTC1                                            *
 *                                                                     *
 *  Sample C code that uses HWIREST API to activate an LPAR.           *
 *                                                                     *
