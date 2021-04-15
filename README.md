@@ -38,8 +38,12 @@ This sample demonstrates how to use the BCPii HWIREST REXX interface to query CP
 
 <br/>[**Example-LPARActivate-C**](https://github.com/IBM/zOS-BCPii/tree/master/Example-LPARActivate-C)
 
-This sample demonstrates how to use the BCPii HWIREST C interface to activate an LPAR and
-POLL to determine if the operation was successful.
+This sample demonstrates how to use the BCPii HWIREST C interface to activate an LPAR and POLL to determine if the operation was successful.
+
+<br/> *Under Construction:* 
+<br/>**Example-LPARLoad-SystemRexx**
+
+![under construction](images/construction.png)
 
 <br/><br/><b>Publication References:</b>
 - Syntax of HWIREST and other useful BCPii information: [**IBM z/OS MVS Programming: Callable Services for High-Level Languages**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.4.0/com.ibm.zos.v2r4.ieac100/uhmis.htm)
