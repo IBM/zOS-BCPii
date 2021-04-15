@@ -17,7 +17,7 @@ This repository contains samples that take advantage of new z/OS BCPii HWIREST i
   - SE 2.15.0 with MCL P46598.370, Bundle S38
   - HMC 2.15.0 with MCL P46686.001, Bundle H25
 - minimum BCPii level
-  - z/OS 2.4 with APAR OA60351
+  - z/OS 2.4 with APAR [**OA60351**](https://www.ibm.com/support/pages/apar/OA60351)
 
 <b>HWIREST Interface Considerations</b>
 - C, Assembler
@@ -36,10 +36,12 @@ This repository contains samples that take advantage of new z/OS BCPii HWIREST i
 
 This sample demonstrates how to use the BCPii HWIREST REXX interface to query CPC and LPAR information.
 
-<br/> *Under Construction:* 
-<br/>**Example-LPARActivate-C**
-  
+<br/>[**Example-LPARActivate-C**](https://github.com/IBM/zOS-BCPii/tree/master/Example-LPARActivate-C)
+
 This sample demonstrates how to use the BCPii HWIREST C interface to activate an LPAR and POLL to determine if the operation was successful.
+
+<br/> *Under Construction:* 
+<br/>**Example-LPARLoad-SystemRexx**
 
 ![under construction](images/construction.png)
 
