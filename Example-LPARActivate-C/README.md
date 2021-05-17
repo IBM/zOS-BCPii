@@ -19,8 +19,8 @@ This sample uses HWIREST API to:
 1. Create the following data sets for the application
    * hlq.HWIREST.CPP - DSORG=PO,RECFM=VB,LRECL=255 - used to store the C++ source files
    * hlq.HWIREST.H - DSORG=PO,RECFM=VB,LRECL=255 - used to store the header files
-   * hlq.HWIREST.LISTCPP - DSORG=PO,RECF=VBA,LRECL=137 - used to store listings
-   * hlq.HWIREST.OBJ - DSORG=PO,RECF=FB,LRECL=80 - used to store objects
+   * hlq.HWIREST.LISTCPP - DSORG=PO,RECFM=VBA,LRECL=137 - used to store listings
+   * hlq.HWIREST.OBJ - DSORG=PO,RECFM=FB,LRECL=80 - used to store objects
    * hlq.HWIREST.JCL - DSORG=PO,RECFM=FB,LRECL=80 - used to hold the JCLs
 1. Store the [**.cpp files**](https://github.com/IBM/zOS-BCPii/tree/master/Example-LPARActivate-C/cpp) into hlq.HWIREST.CPP data sets
 1. Store the [**.h files**](https://github.com/IBM/zOS-BCPii/tree/master/Example-LPARActivate-C/h) into hlq.HWIREST.H data sets
