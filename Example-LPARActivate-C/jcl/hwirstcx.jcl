@@ -1,3 +1,6 @@
+//HWIRSTCX JOB NOTIFY=&SYSUID,
+// CLASS=J,MSGLEVEL=1,MSGCLASS=H
+/*JOBPARM SYSAFF=???
 //*******************************************************************
 //*
 //* Copyright 2021 IBM Corp.
@@ -17,9 +20,6 @@
 //*---------------------------------------------
 //* Sample JCL to COMPILE AND BIND A C++ PROGRAM
 //*---------------------------------------------
-//HWIRSTCX JOB NOTIFY=&SYSUID,
-// CLASS=J,MSGLEVEL=1,MSGCLASS=H
-/*JOBPARM SYSAFF=???
 //* OFFICIAL COMPILER FOR C++ PROGRAMS
 //         JCLLIB ORDER=(CBC.SCCNPRC)
 //* Location of c++ source and listings datasets
