@@ -1,3 +1,5 @@
+//HWIRSTC1 JOB CLASS=J,MSGLEVEL=(2,1),REGION=0K,MSGCLASS=H
+/*JOBPARM SYSAFF=???
 //*******************************************************************
 //*
 //* Copyright 2021 IBM Corp.
@@ -17,8 +19,6 @@
 //*--------------------------------------
 //* Sample JCL to execute the program
 //*--------------------------------------
-//HWIRSTC1 JOB CLASS=J,MSGLEVEL=(2,1),REGION=0K,MSGCLASS=H
-/*JOBPARM SYSAFF=???
 //HWIRSTC1  EXEC PGM=HWIRSTC1,
 //    PARM='POSIX(ON),MSGFILE(SYSOUT) / CPCname LPARname'
 //STEPLIB  DD DSN=hlq.PDSE.LOAD,DISP=SHR
