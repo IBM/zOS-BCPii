@@ -40,7 +40,7 @@ This sample demonstrates how to use the BCPii HWIREST REXX interface to query CP
 
 This sample demonstrates how to use the BCPii HWIREST C interface to activate an LPAR and POLL to determine if the operation was successful.
 
-<br/>[**Example-LPARLoad-SystemRexx**] (https://github.com/IBM/zOS-BCPii/tree/master/Example-LPARLoad-SYSREXX)
+<br/>[**Example-LPARLoad-SystemRexx**](https://github.com/IBM/zOS-BCPii/tree/master/Example-LPARLoad-SYSREXX)
 
 This sample demonstrates how to use BCPii HWIREST SYSTEM REXX interface to load an LPAR, including a possible activation of the LPAR before hand.
 
