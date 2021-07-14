@@ -33,6 +33,10 @@ This repository contains samples that take advantage of new z/OS BCPii HWIREST i
   - Request Body maximum 32767 bytes
   - Response Body maximum 2.5MB
 
+<b>Usage Notes</b>
+- In the event the SE System BCPii Permissions on the Security panel are NOT granted in order to restrict access to LPARs only (disallow CPC access), the application should use the following List Permitted Logical Partitions REST API to obtain the URI and Target Name information for the target LPAR
+  - ```GET /api/console/operations/list-permitted-logical-partitions```
+
 <br/>[**Example-QueryInfo-REXX**](https://github.com/IBM/zOS-BCPii/tree/master/Example-QueryInfo-REXX)
 
 This sample demonstrates how to use the BCPii HWIREST REXX interface to query CPC and LPAR information.
