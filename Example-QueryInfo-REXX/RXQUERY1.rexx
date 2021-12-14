@@ -41,9 +41,17 @@
 /*                                                                     */
 /* INVOCATION:                                                         */
 /*     Expects two input parms, name of a CPC and name of an LPAR.     */
+/*     Use the value 'LOCAL_CPC' to indicate local CPC.                */
+/*     Use the value 'LOCAL_LPAR' to indicate local LPAR.              */
 /*     Takes an optional '-v' to enable verbose json tracing.          */
-/*        EX 'HWI.HWIREST.REXX(RXQUERY1)' 'TZ15 SCOUT'                 */
-/*            TZ15 is the CPC Name, SCOUT is the LPAR Name             */
+/*                                                                     */
+/*     invocation examples:                                            */
+/*        'HWI.HWIREST.REXX(RXQUERY1)' 'TZ15 SCOUT'                    */
+/*            - TZ15 is the CPC Name, SCOUT is the LPAR Name           */
+/*        'HWI.HWIREST.REXX(RXQUERY1)' 'LOCAL_CPC SCOUT'               */
+/*            - LPAR SCOUT on the local CPC                            */
+/*        'HWI.HWIREST.REXX(RXQUERY1)' 'LOCAL_CPC LOCAL_LPAR' '-v'     */
+/*            - LOCAL LPAR with json parser tracing                    */
 /*                                                                     */
 /* DEPENDENCIES                                                        */
 /*     none.                                                           */
@@ -56,11 +64,16 @@
 /*        High-Level Languages publication for more information        */
 /*        regarding the usage of HWIREST and JSON Parser APIs.         */
 /*                                                                     */
+/* 12/01/2021 GG: enhance to support LOCAL CPC and LPAR                */
 /*                                                                     */
 /* END OF SPECIFICATIONS  * * * * * * * * * * * * * * * * * * * * * * **/
 
 MACLIB_DATASET = 'SYS1.MACLIB'
 VERBOSE = 0    /* JSON parser specific, enabled via -v */
+TRUE = 1
+FALSE = 0
+localCPC = TRUE
+localLPAR = TRUE
 
 /*********************/
 /* Get program args  */
@@ -89,19 +102,159 @@ if RESULT <> 0 then
 /*********************************/
 /* Start of BCPii logic          */
 /*********************************/
-if getCPCInfo() then
+if localCPC then
   do
-    call QueryCPC
-
-    if getLPARinfo() then
-      do
-        call QueryLPAR
-      end
+    if getLocalCPCInfo() <> TRUE then
+      exit fatalError( '** failed to get local CPC info **' )
   end
+else
+  do
+    if getCPCInfo() <> TRUE then
+      exit fatalError( '** failed to get CPC info **' )
+  end
+
+call QueryCPC
+
+if localLPAR then
+  do
+    if getLocalLPARInfo() <> TRUE then
+      exit fatalError( '** failed to get local LPAR info **' )
+  end
+else
+  do
+    if getLPARInfo() <> TRUE then
+      exit fatalError( '** failed to get LPAR info **' )
+  end
+
+call QueryLPAR
 
 call JSON_termParser
 
 return 0 /* end main */
+
+/*******************************************************/
+/* Function:  GetLocalCPCInfo                          */
+/*                                                     */
+/* Retrieve the uri and target name associated with    */
+/* local CPC and prime CPCuri and CPCtargetName        */
+/* variables with the info                             */
+/*                                                     */
+/*******************************************************/
+GetLocalCPCInfo:
+
+methodSuccess = 1 /* assume true */
+localCPCfound = FALSE
+
+/* First list the cpcs, then retrieve local
+   CPC which will have
+           "location":"local"
+
+   GET /api/cpcs
+
+   v1: HWILIST(HWI_LIST_LOCAL_CPC)
+*/
+reqUri = '/api/cpcs'
+CPCInfoResponse = GetRequest(reqUri)
+
+if CPCInfoResponse = '' Then
+  do
+    say 'fatalError ** failed to retrieve CPC info **'
+    return 0
+  end
+
+/* Parse the response to obtain the uri
+   and target name associated with CPC,
+   which will be used to query storage info
+*/
+call JSON_parseJson CPCInfoResponse
+CPCArray = JSON_findValue(0, "cpcs", HWTJ_ARRAY_TYPE)
+if wasJSONValueFound(CPCArray) = FALSE then
+  do
+    say 'fatalError ** failed to retrieve CPCs **'
+    return 0
+  end
+
+/**************************************************************/
+ /* Determine the number of CPCs represented in the array     */
+ /**************************************************************/
+ CPCs = JSON_getArrayDim(CPCArray)
+ if CPCs <= 0 then
+    return fatalError( '** Unable to retrieve number of array entries **' )
+
+ /********************************************************************/
+ /* Traverse the CPCs array to populate CPCsList.                    */
+ /* We use the REXX (1-based) idiom  but adjust for the differing    */
+ /* (0-based) idiom of the toolkit.                                  */
+ /********************************************************************/
+ say 'Processing information for '||CPCs||' CPC(s)... searching for local'
+ do i = 1 to CPCs
+    nextEntryHandle = JSON_getArrayEntry(CPCArray,i-1)
+    CPClocation = JSON_findValue(nextEntryHandle,"location",HWTJ_STRING_TYPE)
+
+    if CPClocation = 'local' then
+      do
+        say 'found local CPC'
+        if localCPCfound <> FALSE then
+          do
+            say 'fatalError ** found two local CPCs **'
+            return 0
+          end
+        localCPCfound = TRUE
+
+        CPCuri=JSON_findValue(nextEntryHandle,"object-uri",HWTJ_STRING_TYPE)
+        if wasJSONValueFound(CPCuri) = FALSE then
+          do
+            say 'fatalError **failed to obtain CPC uri**'
+            return 0
+          end
+
+        CPCtargetName=JSON_findValue(nextEntryHandle,"target-name",HWTJ_STRING_TYPE)
+        if wasJSONValueFound(CPCtargetName) = FALSE then
+          do
+            say 'fatalError **failed to obtain CPC target name**'
+            return 0
+          end
+
+        CPCname=JSON_findValue(nextEntryHandle,"name",HWTJ_STRING_TYPE)
+        if wasJSONValueFound(CPCname) = FALSE then
+          do
+            say 'fatalError **failed to obtain CPC name**'
+            return 0
+          end
+      end
+ end /* endloop thru the JSON LPARs array */
+
+if localCPCfound = FALSE then
+  do
+    methodSuccess = FALSE
+    Say 'Failed to retrieve local CPC info'
+  end
+else
+  do
+   Say
+   Say 'Successfully obtained local CPC Info:'
+   Say '  name:'||CPCname
+   Say '  uri:'||CPCuri
+   Say '  target-name:'||CPCtargetName
+   Say
+  end
+
+return methodSuccess
+
+/*******************************************************/
+/* Function:  wasJSONValueFound                        */
+/*                                                     */
+/* return FALSE is the content is an empty string or   */
+/* the string '(not found), otherwise return TRUE      */
+/*                                                     */
+/*******************************************************/
+wasJSONValueFound:
+valueString = arg(1)
+
+if valueString = '' | valueString = '(not found)' then
+  return FALSE
+else
+  return TRUE
 
 /*******************************************************/
 /* Function:  GetCPCInfo                               */
@@ -307,6 +460,111 @@ else
    Say 'full response body:('||LPARInfoResponse||')'
    Say
    Say 'fatalError ** failed to obtain LPAR info **'
+  end
+
+return methodSuccess
+
+/*******************************************************/
+/* Function:  GetLocalLPARInfo                         */
+/*                                                     */
+/* Retrieve the uri and target name associated with    */
+/* local LPAR and prime LPARuri and LPARtargetName     */
+/* variables with the info                             */
+/*                                                     */
+/*******************************************************/
+GetLocalLPARInfo:
+
+methodSuccess = TRUE /* assume true */
+localLPARfound = FALSE
+
+/* First list the LPAR, then retrieve local
+   LPAR which will have
+        “request-origin” : true
+
+   GET /api/cpcs/{cpc-id}/logical-partitions
+
+   v1: HWILIST(HWI_LIST_LOCALIMAGE)
+*/
+LPARlisturi = CPCuri||'/logical-partitions'
+LPARInfoResponse = GetRequest(LPARlisturi,CPCtargetName)
+
+if LPARInfoResponse = '' Then
+  do
+    say 'fatalError ** failed to get local LPAR info **'
+    return 0
+  end
+
+call JSON_parseJson LPARInfoResponse
+LPARArray = JSON_findValue(0, "logical-partitions", HWTJ_ARRAY_TYPE)
+if wasJSONValueFound(LPARArray) = FALSE then
+  do
+    say 'fatalError ** failed to retrieve LPARs **'
+    return 0
+  end
+
+/**************************************************************/
+ /* Determine the number of LPARs represented in the array    */
+ /**************************************************************/
+LPARs = JSON_getArrayDim(LPARArray)
+ if LPARs <= 0 then
+    return fatalError( '** Unable to retrieve number of array entries **' )
+
+ /********************************************************************/
+ /* Traverse the LPARs array to populate LPARsList.                  */
+ /* We use the REXX (1-based) idiom  but adjust for the differing    */
+ /* (0-based) idiom of the toolkit.                                  */
+ /********************************************************************/
+ say 'Processing information for '||LPARs||' LPAR(s)... searching for local'
+ do i = 1 to LPARs
+    nextEntryHandle = JSON_getArrayEntry(LPARArray,i-1)
+    LPARlocal = JSON_findValue(nextEntryHandle,"request-origin",HWTJ_BOOLEAN_TYPE)
+
+    if LPARlocal = 'true' then
+      do
+        say 'found local LPAR'
+        if localLPARfound <> 0 then
+          do
+            say 'fatalError ** found two local LPARs **'
+            return 0
+          end
+        localLPARfound = TRUE
+
+        LPARuri=JSON_findValue(nextEntryHandle,"object-uri",HWTJ_STRING_TYPE)
+        if wasJSONValueFound(LPARuri) = FALSE then
+          do
+            say 'fatalError **failed to obtain LPAR uri**'
+            return 0
+          end
+
+        LPARtargetName=JSON_findValue(nextEntryHandle,"target-name",HWTJ_STRING_TYPE)
+         if wasJSONValueFound(LPARtargetName) = FALSE then
+          do
+            say 'fatalError **failed to obtain LPAR target name**'
+            return 0
+          end
+
+        LPARname=JSON_findValue(nextEntryHandle,"name",HWTJ_STRING_TYPE)
+        if wasJSONValueFound(LPARname) = FALSE then
+          do
+            say 'fatalError **failed to obtain LPAR name**'
+            return 0
+          end
+      end
+ end /* endloop thru the JSON LPARs array */
+
+if localLPARfound = FALSE then
+  do
+    methodSuccess = FALSE
+    Say 'Failed to retrieve local LPAR info'
+  end
+else
+  do
+   say
+   Say 'Successfully obtained local LPAR Info:'
+   Say '  name:'||LPARname
+   Say '  uri:'||LPARuri
+   Say '  target-name:'||LPARtargetName
+   Say
   end
 
 return methodSuccess
@@ -1523,16 +1781,24 @@ GetArgs:
 
  do i = 1 to argCount
    localArg = word(S,i)
-   select
-     when (i == 1) then
+   if (i == 1) then
+     do
        CPCname = localArg
-     when (i == 2) then
+       if CPCname <> 'LOCAL_CPC' then
+         localCPC = FALSE
+     end
+   else if (i == 2) then
+     do
        LPARname = localArg
-     otherwise
+       if LPARname <> 'LOCAL_LPAR' then
+         localLPAR = FALSE
+     end
+   else
+     do
        if TRANSLATE(localArg) == '-V' then
          VERBOSE = 1
-   end
- end
+     end
+ end /* argCount loop */
 return 0  /* end function */
 
 /***********************************************/
@@ -1547,6 +1813,8 @@ usage:
  say
  say 'usage:'
  say 'ex RXQUERY1 <CPC name> <LPAR name>'
+ say '      - specify `LOCAL_CPC` to default to the LOCAL CPC'
+ say '      - specify `LOCAL_LPAR` to default to the LOCAL LPAR'
  say '           <optional -V for verbose JSON parser tracing>'
  say
  say '('||whyString||')'

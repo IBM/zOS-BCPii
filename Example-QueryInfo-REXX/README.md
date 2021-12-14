@@ -1,13 +1,13 @@
 ## Example-QueryInfo-REXX
 
-This samples uses HWIREST API to:
-- List CPCs, filtered by the CPC name provided, in order to retrieve the URI and target name associated with that CPC
+This sample uses HWIREST API to:
+- List CPCs and retrieve the URI and target name associated with the LOCAL CPC or the CPCname provided
 - Retrieve the following CPC information:
     - total memory installed
     - total memory available for LPARs
     - primary SE MAC
     - LPAR Resource Assignment
-- List the LPARs on that CPC, filtered by the LPAR name provided, in order to retrieve the URI and target name associated with that LPAR
+- List the LPARs on the target CPC and retrieve the URI and target name associated with the LOCAL LPAR or the LPARname provided
 - Retrieve the following LPAR information:
     - Dedicated Logical CP #
     - Online Logical CP #
@@ -26,28 +26,35 @@ This samples uses HWIREST API to:
     - HWI.TARGET.netid.nau.imagename
 
     <p>where netid.nau represents the 3– to 17– character SNA name of the particular CPC
-    and imagename represents the 1– to 8- character LPAR name that will be used as input</p>
+    and imagename represents the 1– to 8- character LPAR name that will be the targets of the request</p>
 
 
 ## Invocation
 **Syntax**:
 ```
- RXQUERY1 CPCname LPARname -v
+  RXQUERY1 CPCname LPARname -v
  ```
  where:
-  - *CPCname* is the name of the CPC you wish to query, **required**
-  - *LPARname* is the name of the LPAR on that CPC that you wish to query, **required**
+  - *CPCname* is the name of the CPC you wish to query
+      - specify `LOCAL_CPC` to default to the LOCAL CPC
+      - **required**
+  - *LPARname* is the name of the LPAR on that CPC that you wish to query
+      - specify `LOCAL_LPAR` to default to the LOCAL LPAR
+      - **required**
   - *–v* is an optional parameter that will turn on verbose JSON parser tracing
 
 **sample invocation in TSO:**
 <br>RXQUERY1 has been copied into data set HWI.HWIREST.REXX
 ```
-ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4'
-ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4 -V'
+ex 'HWI.HWIREST.REXX(RXQUERY1)' 'LOCAL_CPC LOCAL_LPAR'
+ex 'HWI.HWIREST.REXX(RXQUERY1)' 'LOCAL_CPC TA4 -v'
+ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4 -v'
 ```
 
-**sample output:**
+**sample output for `ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4'`:**
 ```
+ Starting RXQUERY1 for CPC name:T256 and LPAR name:TA4
+
 ------->
  GET request being made....
  uri:/api/cpcs?name=T256
@@ -141,3 +148,113 @@ ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4 -V'
  ICF Reserved Cores #:(0)
  ```
 
+**sample output for `ex 'HWI.HWIREST.REXX(RXQUERY1)' 'LOCAL_CPC LOCAL_LPAR'`:**
+```
+ Starting RXQUERY1 for CPC name:LOCAL_CPC and LPAR name:LOCAL_LPAR
+
+ ------->
+ GET request being made....
+ uri:/api/cpcs
+
+ Rexx RC: (0)
+ HTTP Status: (200)
+ SE DateTime: (Thu, 02 Dec 2021 00:41:33 GMT)
+ SE requestId: (Sx13dc0888-1cde-11ec-85fd-00106f253bd4.61 Rx0)
+ Response Body: ({"cpcs":[{"name":"T123","se-version":"2.15.0","location":"remote","object-uri":"/api/cpcs/cccccccc-dddddddddddddd",
+ "target-name":"IBM390PS.T123"},{"name":"T231","se-version":"2.15.0","location":"local","object-uri":"/api/cpcs/bbbbbb-1111-3333-9999-44444",
+ "target-name":"IBM390PS.T231"},{"name":"T321","se-version":"2.15.0","location":"remote","object-uri":"/api/cpcs/bbbbb-77777-888",
+ "target-name":"IBM390PS.T321"}]})
+
+ <-------
+
+ Processing information for 22 CPC(s)... searching for local
+ found local CPC
+
+ Successfully obtained local CPC Info:
+   name:T231
+   uri:/api/cpcs/bbbbbb-1111-3333-9999-44444
+   target-name:IBM390PS.T231
+
+
+ ------->
+ GET request being made....
+ uri:/api/cpcs/bbbbbb-1111-3333-9999-44444?properties=storage-total-installed,storage-customer,lan-interface1-address,lan-i
+ nterface2-address,network1-ipv4-pri-ipaddr,network2-ipv4-pri-ipaddr&cached-acceptable=true
+1targetname:IBM390PS.T231
+
+ Rexx RC: (0)
+ HTTP Status: (200)
+ SE DateTime: (Thu, 02 Dec 2021 00:41:33 GMT)
+ SE requestId: (Sx13dc0888-1cde-11ec-85fd-00106f253bd4.61 Rx1)
+ Response Body: ({"lan-interface1-address":"00106f253bd6","lan-interface2-address":"00106f253bd7","network2-ipv4-pri-ipaddr":null,"n
+ etwork1-ipv4-pri-ipaddr":"9.11.12.16","storage-customer":2883584,"storage-total-installed":3145728})
+
+ <-------
+
+
+ CPC total storage available:(3145728)
+ CPC storage available to LPARs:(2883584)
+ CPC SE MAC LAN interface 1:(00106f253bd6)
+ CPC SE LAN 1, primary IPv4 address:(9.11.12.16)
+ CPC SE MAC LAN interface 2:(00106f253bd7)
+ CPC SE LAN 2, primary IPv4 address:(false)
+
+
+ ------->
+ GET request being made....
+ uri:/api/cpcs/bbbbbb-1111-3333-9999-44444/logical-partitions
+ targetname:IBM390PS.T231
+
+ Rexx RC: (0)
+ HTTP Status: (200)
+ SE DateTime: (Thu, 02 Dec 2021 00:41:34 GMT)
+ SE requestId: (Sx13dc0888-1cde-11ec-85fd-00106f253bd4.61 Rx2)
+ Response Body: ({"logical-partitions":[{"name":"BCPE","request-origin":false,"object-uri":"/api/logical-partitions/222-777-888",
+ "target-name":"IBM390PS.T231.BCPE","status":"operating"},{"name":"BCPF","request-origin":true,"object-uri":"/
+ api/logical-partitions/6666666-8888-33333-eeeeeeeee","target-name":"IBM390PS.T231.BCPF","status":"operating"}]})
+
+ <-------
+
+ Processing information for 2 LPAR(s)... searching for local
+ found local LPAR
+
+ Successfully obtained local LPAR Info:
+   name:BCPF
+   uri:/api/logical-partitions/6666666-8888-33333-eeeeeeeee
+   target-name:IBM390PS.T231.BCPF
+
+
+ ------->
+ GET request being made....
+ uri:/api/logical-partitions/6666666-8888-33333-eeeeeeeee?properties=processor-usage,number-general-purpose-processors,numbe
+ r-reserved-general-purpose-processors,number-general-purpose-cores,number-reserved-general-purpose-cores,number-ziip-processors,num
+ ber-reserved-ziip-processors,number-ziip-cores,number-reserved-ziip-cores,number-icf-processors,number-reserved-icf-processors,numb
+ er-icf-cores,number-reserved-icf-cores&cached-acceptable=true
+ targetname:IBM390PS.T231.BCPF
+
+ Rexx RC: (0)
+ HTTP Status: (200)
+ SE DateTime: (Thu, 02 Dec 2021 00:41:34 GMT)
+ SE requestId: (Sx13dc0888-1cde-11ec-85fd-00106f253bd4.61 Rx3)
+1Response Body: ({"number-reserved-icf-processors":0,"number-ziip-processors":0,"number-icf-processors":0,"number-reserved-general-p
+ urpose-processors":0,"processor-usage":"shared","number-general-purpose-processors":3,"number-ziip-cores":0,"number-general-purpose
+ -cores":3,"number-reserved-ziip-cores":1,"number-icf-cores":0,"number-reserved-icf-cores":0,"number-reserved-general-purpose-cores"
+ :0,"number-reserved-ziip-processors":1})
+
+ <-------
+
+
+ Processor Usage:(shared)
+ GPP #:(3)
+ GPP Reserved #:(0)
+ GPP Cores #:(3)
+ GPP Reserved Cores #:(0)
+ ZIIP #:(0)
+ ZIIP Reserved #:(1)
+ ZIIP Cores #:(0)
+ ZIIP Reserved Cores #:(1)
+ ICF #:(0)
+ ICF Reserved #:(0)
+ ICF Cores #:(0)
+ ICF Reserved Cores #:(0)
+ ```
