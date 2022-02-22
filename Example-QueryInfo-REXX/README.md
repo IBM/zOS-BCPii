@@ -32,7 +32,7 @@ This sample uses HWIREST API to:
 ## Invocation
 **Syntax**:
 ```
-  RXQUERY1 CPCname LPARname -v
+  RXQUERY1 CPCname LPARname -v -I
  ```
  where:
   - *CPCname* is the name of the CPC you wish to query
@@ -42,6 +42,7 @@ This sample uses HWIREST API to:
       - specify `LOCAL_LPAR` to default to the LOCAL LPAR
       - **required**
   - *–v* is an optional parameter that will turn on verbose JSON parser tracing
+  - *–I* is an optional parameter indicates the exec is running in an ISV REXX environment
 
 **sample invocation in TSO:**
 <br>RXQUERY1 has been copied into data set HWI.HWIREST.REXX
@@ -49,6 +50,7 @@ This sample uses HWIREST API to:
 ex 'HWI.HWIREST.REXX(RXQUERY1)' 'LOCAL_CPC LOCAL_LPAR'
 ex 'HWI.HWIREST.REXX(RXQUERY1)' 'LOCAL_CPC TA4 -v'
 ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4 -v'
+ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4 -v -I'
 ```
 
 **sample output for `ex 'HWI.HWIREST.REXX(RXQUERY1)' 'T256 TA4'`:**

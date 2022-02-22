@@ -43,6 +43,8 @@
 /*     Expects two input parms, name of a CPC and name of an LPAR.     */
 /*     Use the value 'LOCAL_CPC' to indicate local CPC.                */
 /*     Use the value 'LOCAL_LPAR' to indicate local LPAR.              */
+/*     Takes an optional '-I' to indicate exec is running in an        */
+/*        ISV REXX environment.                                        */
 /*     Takes an optional '-v' to enable verbose json tracing.          */
 /*                                                                     */
 /*     invocation examples:                                            */
@@ -50,8 +52,10 @@
 /*            - TZ15 is the CPC Name, SCOUT is the LPAR Name           */
 /*        'HWI.HWIREST.REXX(RXQUERY1)' 'LOCAL_CPC SCOUT'               */
 /*            - LPAR SCOUT on the local CPC                            */
-/*        'HWI.HWIREST.REXX(RXQUERY1)' 'LOCAL_CPC LOCAL_LPAR' '-v'     */
+/*        'HWI.HWIREST.REXX(RXQUERY1)' 'LOCAL_CPC LOCAL_LPAR -v'       */
 /*            - LOCAL LPAR with json parser tracing                    */
+/*        'HWI.HWIREST.REXX(RXQUERY1)' 'LOCAL_CPC LOCAL_LPAR -I'       */
+/*            - LOCAL LPAR in an ISV REXX environment                  */
 /*                                                                     */
 /* DEPENDENCIES                                                        */
 /*     none.                                                           */
@@ -65,6 +69,7 @@
 /*        regarding the usage of HWIREST and JSON Parser APIs.         */
 /*                                                                     */
 /* 12/01/2021 GG: enhance to support LOCAL CPC and LPAR                */
+/* 02/22/2022 GG: enhance to support ISV REXX environment (-I)         */
 /*                                                                     */
 /* END OF SPECIFICATIONS  * * * * * * * * * * * * * * * * * * * * * * **/
 
@@ -75,6 +80,11 @@ FALSE = 0
 localCPC = TRUE
 localLPAR = TRUE
 
+hwiHostRC = 0     /* HWIHOST rc */
+HWIHOST_ON = FALSE
+ISVREXX = FALSE  /* default to TSO/E, enable via -I */
+PARSER_INIT = FALSE
+
 /*********************/
 /* Get program args  */
 /*********************/
@@ -83,11 +93,22 @@ if GetArgs(argString) <> 0 then
    exit -1
 
 say 'Starting RXQUERY1 for CPC name:'||CPCname||' and LPAR name:'||LPARname
+if ISVREXX then
+  do
+    say 'Running in an ISV REXX environment'
+    hwiHostRC = hwihost("ON")
+    say 'HWIHOST("ON") return code is :('||hwiHostRC||')'
+
+    if hwiHostRC <> 0 then
+      exit fatalErrorAndCleanup('** unable to turn on HWIHOST **')
+    HWIHOST_ON = TRUE
+  end
+
 call IncludeConstants
 
 call JSON_getToolkitConstants
 if RESULT <> 0 then
-  exit fatalError( '** Environment error **' )
+  exit fatalErrorAndCleanup( '** Environment error **' )
 
 PROC_GLOBALS = 'VERBOSE parserHandle '||HWT_CONSTANTS
 
@@ -97,7 +118,7 @@ PROC_GLOBALS = 'VERBOSE parserHandle '||HWT_CONSTANTS
 parserHandle = ''
 call JSON_initParser
 if RESULT <> 0 then
-  exit fatalError( '** Parser init failure **' )
+  exit fatalErrorAndCleanup( '** Parser init failure **' )
 
 /*********************************/
 /* Start of BCPii logic          */
@@ -105,32 +126,118 @@ if RESULT <> 0 then
 if localCPC then
   do
     if getLocalCPCInfo() <> TRUE then
-      exit fatalError( '** failed to get local CPC info **' )
+      exit fatalErrorAndCleanup( '** failed to get local CPC info **' )
   end
 else
   do
     if getCPCInfo() <> TRUE then
-      exit fatalError( '** failed to get CPC info **' )
+      exit fatalErrorAndCleanup( '** failed to get CPC info **' )
   end
 
 call QueryCPC
 
+/*************************************************/
+/* NOTE: If you modify this sample to retrieve   */
+/*       the full CPC data model and encounter a */
+/*       JSON Parser error for the following     */
+/*       request (i.e. get lpar info), invoke    */
+/*       reinitParser between the two functions  */
+/*       as a work around for the error.         */
+/*                                               */
+/* call reinitParser                             */
+/*                                               */
+/*************************************************/
+
 if localLPAR then
   do
     if getLocalLPARInfo() <> TRUE then
-      exit fatalError( '** failed to get local LPAR info **' )
+      exit fatalErrorAndCleanup( '** failed to get local LPAR info **' )
   end
 else
   do
     if getLPARInfo() <> TRUE then
-      exit fatalError( '** failed to get LPAR info **' )
+      exit fatalErrorAndCleanup( '** failed to get LPAR info **' )
   end
 
 call QueryLPAR
 
-call JSON_termParser
+call Cleanup
 
 return 0 /* end main */
+
+/***********************************************/
+/* Function: reinitParser                      */
+/*                                             */
+/* Terminate the existing parser handle and    */
+/* initialize a brand new parser handle.       */
+/***********************************************/
+reinitParser:
+  if PARSER_INIT then
+    do
+      /* set ahead of time because we want to avoid an endless error
+        loop in the event JSON_termParser invokes fatalError and
+        goes through this path again
+      */
+      PARSER_INIT = FALSE
+      call JSON_termParser
+    end
+
+
+  call JSON_initParser
+  if RESULT <> 0 then
+    exit fatalErrorAndCleanup( '** Parser init failure **' )
+
+return 0
+
+/***********************************************/
+/* Function:  fatalErrorAndCleanup             */
+/*                                             */
+/* Surfaces the input message, and invokes     */
+/* cleanup to ensure the parser is terminated  */
+/* and HWIHOST is set to off, and returns      */
+/* a canonical failure code.                   */
+/*                                             */
+/* Returns: -1 to indicate fatal script error. */
+/***********************************************/
+fatalErrorAndCleanup:
+ errorMsg = arg(1)
+ say errorMsg
+ call Cleanup
+ return -1  /* end function */
+
+/*******************************************************/
+/* Function: Cleanup                                   */
+/*                                                     */
+/* Terminate the parser instance and, if running in an */
+/* ISV REXX environment, turn off HWIHOST.             */
+/*******************************************************/
+Cleanup:
+
+if PARSER_INIT then
+  do
+    /* set ahead of time because we want to avoid an endless error
+       loop in the event JSON_termParser invokes fatalError and
+       goes through this path again
+    */
+    PARSER_INIT = FALSE
+    call JSON_termParser
+  end
+
+if HWIHOST_ON then
+  do
+    /* set ahead of time because we want to avoid an endless error
+       loop in the event HWIHOST(OFF) fails and invokes fatalError,
+       which will goes through this path again
+    */
+    HWIHOST_ON = FALSE
+    hwiHostRC = hwihost("OFF")
+    say 'HWIHOST("OFF") return code is: ('||hwiHostRC||')'
+
+    if hwiHostRC <> 0 then
+      exit fatalErrorAndCleanup('** unable to turn off HWIHOST **')
+  end
+
+return 0
 
 /*******************************************************/
 /* Function:  GetLocalCPCInfo                          */
@@ -208,7 +315,8 @@ if wasJSONValueFound(CPCArray) = FALSE then
             return 0
           end
 
-        CPCtargetName=JSON_findValue(nextEntryHandle,"target-name",HWTJ_STRING_TYPE)
+        CPCtargetName=JSON_findValue(nextEntryHandle,"target-name",,
+                      HWTJ_STRING_TYPE)
         if wasJSONValueFound(CPCtargetName) = FALSE then
           do
             say 'fatalError **failed to obtain CPC target name**'
@@ -358,10 +466,14 @@ queryMAC1 = 'lan-interface1-address'
 queryMAC2 = 'lan-interface2-address'
 queryNET1IPV4IP = 'network1-ipv4-pri-ipaddr'
 queryNET2IPV4IP = 'network2-ipv4-pri-ipaddr'
-CPCQueryUri = CPCuri||'?properties='||queryStorageTotal||','||queryStorageAvail
-CPCQueryUri = CPCQueryUri||','||queryMAC1||','||queryMAC2
-CPCQueryUri = CPCQueryUri||','||queryNET1IPV4IP||','||queryNET2IPV4IP
-CPCQueryUri = CPCQueryUri || '&cached-acceptable=true'
+
+CPCQueryUri = CPCuri||'?cached-acceptable=true&properties=',
+  ||queryStorageTotal,
+  ||','||queryStorageAvail,
+  ||','||queryMAC1,
+  ||','||queryMAC2,
+  ||','||queryNET1IPV4IP,
+  ||','||queryNET2IPV4IP
 
 CPCQueryResponse = GetRequest(CPCQueryUri,CPCtargetName)
 if CPCQueryResponse = '' Then
@@ -517,7 +629,8 @@ LPARs = JSON_getArrayDim(LPARArray)
  say 'Processing information for '||LPARs||' LPAR(s)... searching for local'
  do i = 1 to LPARs
     nextEntryHandle = JSON_getArrayEntry(LPARArray,i-1)
-    LPARlocal = JSON_findValue(nextEntryHandle,"request-origin",HWTJ_BOOLEAN_TYPE)
+    LPARlocal = JSON_findValue(nextEntryHandle,"request-origin",,
+                       HWTJ_BOOLEAN_TYPE)
 
     if LPARlocal = 'true' then
       do
@@ -536,7 +649,8 @@ LPARs = JSON_getArrayDim(LPARArray)
             return 0
           end
 
-        LPARtargetName=JSON_findValue(nextEntryHandle,"target-name",HWTJ_STRING_TYPE)
+        LPARtargetName=JSON_findValue(nextEntryHandle,"target-name",,
+                       HWTJ_STRING_TYPE)
          if wasJSONValueFound(LPARtargetName) = FALSE then
           do
             say 'fatalError **failed to obtain LPAR target name**'
@@ -614,14 +728,20 @@ queryResICF = 'number-reserved-icf-processors'
 queryICFCores = 'number-icf-cores'
 queryResICFCores = 'number-reserved-icf-cores'
 
-LPARQueryUri = LPARuri||'?properties='||queryUsage
-LPARQueryUri = LPARQueryUri||','||queryGPP||','||queryResGPP
-LPARQueryUri = LPARQueryUri||','||queryGPPCores||','||queryResGPPCores
-LPARQueryUri = LPARQueryUri||','||queryZIIP||','||queryResZIIP
-LPARQueryUri = LPARQueryUri||','||queryZIIPCores||','||queryResZIIPCores
-LPARQueryUri = LPARQueryUri||','||queryICF||','||queryResICF
-LPARQueryUri = LPARQueryUri||','||queryICFCores||','||queryResICFCores
-LPARQueryUri = LPARQueryUri||'&cached-acceptable=true'
+LPARQueryUri = LPARuri||'?cached-acceptable=true&properties=',
+  ||queryUsage,
+  ||','||queryGPP,
+  ||','||queryResGPP,
+  ||','||queryGPPCores,
+  ||','||queryResGPPCores,
+  ||','||queryZIIP,
+  ||','||queryResZIIP,
+  ||','||queryZIIPCores,
+  ||','||queryResZIIPCores,
+  ||','||queryICF,
+  ||','||queryResICF,
+  ||','||queryICFCores,
+  ||','||queryResICFCores
 
 LPARQueryResponse = GetRequest(LPARQueryUri, LPARtargetName)
 if LPARQueryResponse = '' Then
@@ -827,16 +947,31 @@ IncludeConstants:
 InterpretRexxFile:
  parse arg file
  numSourceLines = 0
+ rc = 0
 
- /**************************************/
- /* Read the lines of the designated   */
- /* (constants) rexx source file into  */
- /* a stem variable...                 */
- /**************************************/
- address TSO
- "ALLOC F(INFILE) DSN("||file||") SHR REU"
- "EXECIO * DISKR INFILE ( FINIS STEM REXXSRC."
- "FREE F(INFILE)"
+ if ISVREXX then
+   do
+     "ALLOC F(MYIND) DSN("||file||") SHR"
+     Address MVS "EXECIO * DISKR MYIND ( FINIS STEM REXXSRC."
+     "FREE F(MYIND)"
+   end
+ else
+   do
+     address TSO
+     "ALLOC F(MYIND) DSN("||file||") SHR REU"
+     "EXECIO * DISKR MYIND ( FINIS STEM REXXSRC."
+     "FREE F(MYIND)"
+   end
+
+ if rc <> 0 then
+   do
+     errMsg = '** fatal error, rc=('||rc,
+             ||') encountered trying to read content from (',
+             ||file||'), if in ISV environment, ensure you used ',
+             '-I option **'
+     exit fatalErrorAndCleanup(errMsg)
+   end
+
  /**********************************/
  /* Interpret the rexx source file */
  /* line by line, to pick up the   */
@@ -858,7 +993,6 @@ InterpretRexxFile:
 
  return  /* end function */
 
-
 /******************************************/
 /* Function:  getInterpretableRexxLine()  */
 /******************************************/
@@ -872,14 +1006,6 @@ getInterpretableRexxLine:
     outLine = ''
 
  return outLine  /* end function */
-
- /********************************************/
- /* Be careful, D2X( -N ) is not tolerated   */
- /********************************************/
- if (ReturnCode >= 0) then
-    Result = Result||' (hex: '||D2X(ReturnCode)||')'
-
- return Result
 
 /**************************************************************/
 /* NOTE: the following was taken from sample hwtjxrx1.rexx    */
@@ -1174,6 +1300,8 @@ JSON_initParser:
  parserHandle = handleOut
  if VERBOSE then
     say 'Json Parser init (hwtjinit) succeeded'
+
+ PARSER_INIT = TRUE
  return 0  /* end function */
 
 
@@ -1776,7 +1904,7 @@ JSON_surfaceDiag: procedure expose DiagArea.
 GetArgs:
  S = arg(1)
  argCount = words(S)
- if argCount == 0 | argCount < 2 | argCount > 3 then
+ if argCount == 0 | argCount < 2 | argCount > 4 then
     return usage( 'Wrong number of arguments' )
 
  do i = 1 to argCount
@@ -1797,6 +1925,13 @@ GetArgs:
      do
        if TRANSLATE(localArg) == '-V' then
          VERBOSE = 1
+       else if TRANSLATE(localArg) == '-I' then
+         ISVREXX = TRUE
+       else
+         do
+           argErr = 'unrecognized argument ('||localArg||')'
+           return usage(argErr)
+         end
      end
  end /* argCount loop */
 return 0  /* end function */
@@ -1812,10 +1947,16 @@ usage:
  whyString = arg(1)
  say
  say 'usage:'
- say 'ex RXQUERY1 <CPC name> <LPAR name>'
- say '      - specify `LOCAL_CPC` to default to the LOCAL CPC'
- say '      - specify `LOCAL_LPAR` to default to the LOCAL LPAR'
- say '           <optional -V for verbose JSON parser tracing>'
+ say 'ex RXQUERY1 CPCName LPARName [-I] [-v]'
+ say '    REQUIRED:'
+ say '       CPCName/arg1 is the name of the CPC,'
+ say '              specify `LOCAL_CPC` to default to the LOCAL CPC'
+ say '       LPARName/arg2 is the name of the LPAR,'
+ say '              specify `LOCAL_LPAR` to default to the LOCAL LPAR'
+ say '    OPTIONAL'
+ say '         -v turn on addition verbose JSON tracing'
+ say '         -I indicate running in an isv rexx, default if not'
+ say '               specified is TSO/E REXX'
  say
  say '('||whyString||')'
  say

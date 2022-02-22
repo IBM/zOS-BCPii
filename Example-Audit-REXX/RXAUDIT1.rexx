@@ -224,7 +224,7 @@ return 0 /* end main */
 /* Function: Cleanup                                   */
 /*                                                     */
 /* Terminate the parser instance and, if running in an */
-/* ISV REXX environment, turn of HWIHOST.              */
+/* ISV REXX environment, turn off HWIHOST.             */
 /*******************************************************/
 Cleanup:
 
@@ -972,14 +972,6 @@ getInterpretableRexxLine:
     outLine = ''
 
  return outLine  /* end function */
-
- /********************************************/
- /* Be careful, D2X( -N ) is not tolerated   */
- /********************************************/
- if (ReturnCode >= 0) then
-    Result = Result||' (hex: '||D2X(ReturnCode)||')'
-
- return Result
 
 /**************************************************************/
 /* NOTE: the following was taken from sample hwtjxrx1.rexx    */
