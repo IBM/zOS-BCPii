@@ -1,12 +1,11 @@
 # zOS-BCPii
 
-![](images/bcpii.png)
+![](images/BCPii.jpg)
 
 **Base Control Program internal interface (z/OS BCPii)**
 - Allows authorized z/OS applications to have HMC-like control over systems in the process control (HMC) network.
 - Does not use any external network; Communicates directly with the SE rather than going over an IP network.
 - A z/OS address space that manages authorized interaction with the interconnected hardware.<br/><br/>
-
 
 This repository contains samples that take advantage of new z/OS BCPii HWIREST interface to issue various requests against the CPC and more.<br/><br/>
 
@@ -17,8 +16,10 @@ This repository contains samples that take advantage of new z/OS BCPii HWIREST i
   - SE 2.15.0 with MCL P46598.370, Bundle S38
   - HMC 2.15.0 with MCL P46686.001, Bundle H25
 - minimum BCPii level
-  - z/OS 2.4 with APAR [**OA61976**](https://www.ibm.com/support/pages/apar/OA61976)
-
+  - z/OS 2.4 with APAR
+     - [**OA60351**](https://www.ibm.com/support/pages/apar/OA60351)
+     - [**OA61976 - TSO/E and ISV REXX env**](https://www.ibm.com/support/pages/apar/OA61976)
+     
 <b>HWIREST Interface Considerations</b>
 - C, Assembler
   - Request Body maximum 64KB
@@ -56,11 +57,12 @@ This samples uses BCPii HWIREST REXX interface to audit LPARs on a target CPC. T
 - Syntax of HWIREST and other useful BCPii information: [**IBM z/OS MVS Programming: Callable Services for High-Level Languages**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.4.0/com.ibm.zos.v2r4.ieac100/uhmis.htm)
     - [**z/OS MVS Programming: Callable Services for High-Level Languages PDF**](https://www-01.ibm.com/servers/resourcelink/svc00100.nsf/pages/zOSV2R4sa231377?OpenDocument)
 
-- Supported REST API operations: [**Hardware Management Console Web Services API, Appendix A, available on Resource Link:**](http://www.ibm.com/servers/resourcelink) <br/> Library -> z15 -> Web Services API
+- Supported REST API operations: [**Hardware Management Console Web Services API, Appendix A, available on Resource Link:**](http://www.ibm.com/servers/resourcelink) <br/> Library -> z15 -> Web Services API)
 
 - [**MVS System Management Facilities (SMF): BCPii SMF 106**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.4.0/com.ibm.zos.v2r4.ieag200/rec106.htm)
 - [**MVS System Codes: BCPii System Code ‘042’X**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.4.0/com.ibm.zos.v2r4.ieah700/idg8313.htm)
 
+- [**zOS Hot Topics: BCPii - A RESTed development**](https://zos-hot-topics.com/2022/rest-enabled-bcpii/)
 
 <br/><br/><b>Other useful references:</b>
 - [**z/OS client web enablement toolkit: JSON Parser**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.4.0/com.ibm.zos.v2r4.ieac100/ieac1-cwe-json.htm)
