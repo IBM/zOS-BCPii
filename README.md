@@ -50,6 +50,11 @@ This sample demonstrates how to use the BCPii HWIREST C interface to activate an
 
 This sample demonstrates how to use BCPii HWIREST SYSTEM REXX interface to load an LPAR, including a possible activation of the LPAR before hand.
 
+**Example-LPARLoad-REXX**
+![](images/construction.png)
+
+This sample demonstrates how to use BCPii HWIREST in a TSO/E REXX or ISV REXX interface to load an LPAR, including a possible activation of the LPAR before hand.
+
 <br/>[**Example-Audit-REXX**](https://github.com/IBM/zOS-BCPii/tree/master/Example-Audit-REXX)
 
 This samples uses BCPii HWIREST REXX interface to audit LPARs on a target CPC. The results are stored in .csv format, in a member in a z/OS data set.
