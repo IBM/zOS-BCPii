@@ -114,7 +114,7 @@ ex 'HWI.HWIREST.REXX(RXENRGY1)' '-D HWI.RXENERGY.OUTPUT -C T256'
 
 ## Generated Output
 
- ![Sample AUDIT result](images/sampleEnergyResult.png)
+ ![Sample ENERGY result](https://github.com/IBM/zOS-BCPii/blob/main/Example-Energy-REXX/images/SampleEnergyResult.png)
  - If no query results show up, ensure that
   1. Your USER ID has the appropriate access level to the FACILITY Class profile associated
      with that CPC, see **System Prep Work** above      
