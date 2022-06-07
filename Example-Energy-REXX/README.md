@@ -79,7 +79,7 @@ This samples uses **HWIREST API** to do the following:
   - *–V*
       - **optional**
       - indicates additional tracing associated with JSON parsing should be turned on
-      -**default if not set:** tracing excludes JSON specific tracing
+      - **default if not set:** tracing excludes JSON specific tracing
 
 **sample invocation in TSO:**
 <br>RXENRGY1 has been copied into data set HWI.HWIREST.REXX and HWI.RXENERGY.OUTPUT
