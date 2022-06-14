@@ -49,13 +49,13 @@
 /*           LOCAL or the CPC name provided via -C option              */
 /*     Optional input parameters:                                      */
 /*        -C <CPCname> name of the CPC to query, default is LOCAL CPC  */
-/*        -S <Status> LPAR Status of the profiles to query             */
+/*        -S <Status> LPAR Status of the profiles to query,            */
 /*           operating - query profiles for active/operating images    */
 /*           not-operating - query profiles for active/not operating   */
 /*                           images                                    */
 /*           not-activated - query profiles for not activated images   */
-/*           Any other values, or no parm specified will default to    */
-/*           operating, value is case sensitive                        */
+/*           Any other value, or no parm specified will default to     */
+/*           operating                                                 */
 /*        -I indicate running out of ISV REXX environment,             */
 /*           default is TSO/E                                          */
 /*        -V turn on additional verbose JSON tracing                   */
@@ -65,8 +65,14 @@
 /*            data set is HWI.CRYPTO, run out of ISV REXX,             */
 /*            if successful will create HWI.CRYPTO(LOCAL)              */
 /*                                                                     */
+/*        EX 'HWI.HWIREST.REXX(RXCRYPT1))'                             */
+/*            '-D HWI.CRYPTO -S not-activated'                         */
+/*            data set is HWI.CRYPTO, run from TSO REXX,               */
+/*            query crypto attributes for not-activated LPARs          */
+/*            if successful will create HWI.CRYPTO(LOCAL)              */
+/*                                                                     */
 /* DEPENDENCIES:                                                       */
-/*     z16 - The crypto properties are supporeted on z16 processors    */
+/*     z16 - The crypto properties are supported on z16 processors    */
 /*           and above.                                                */
 /*                                                                     */
 /* NOTES:                                                              */
@@ -84,7 +90,6 @@ MACLIB_DATASET = 'SYS1.MACLIB'
 
 TEMP_DATASET = '' /* required input via -D */
 MEMBER_NAME = 'LOCAL' /* default CPC */
-LPAR_Status = 'operating' /* default Image status */
 
 TRUE = 1
 FALSE = 0
@@ -100,9 +105,6 @@ localCPC = TRUE  /* default to lpars on the LOCAL CPC, change via -C */
 cryptoauth = 'crypto-activity-cpu-counter-authorization-control'
 assignedDomainsProp = 'assigned-crypto-domains'
 assignedCryptosProp = 'assigned-cryptos'
-validst1            = 'operating'
-validst2            = 'not-operating'
-validst3            = 'not-activated'
 
 /*********************************/
 /* Get program args              */
@@ -110,19 +112,6 @@ validst3            = 'not-activated'
 parse arg argString
 if GetArgs(argString) <> 0 then
   exit -1
-
-Select
- When LPAR_Status = validst1 then NOP
- When LPAR_Status = validst2 then NOP
- When LPAR_Status = validst3 then NOP
- OTHERWISE
-  do
-   call EntryArrow 
-   say 'Invalid LPAR status entered, default of operating will be used'
-   LPAR_Status = 'operating'
-   call ExitArrow 
-  end
-end
 
 /**************************************/
 /* Before proceeding, ensure the      */
@@ -205,7 +194,7 @@ do iLpar = 1 to LPARsList.0
    Only retrieve content for LPARs in the specified status
    NOTE: Default is to retrive content for operating LPARs
   *********************************************************/
-  if LPARstatus <> LPAR_Status then
+  if LPARstatus <> ReqLPAR_Status then
     do
       say '========================================================='
       say 'skipping over ('||LPARname||') because the status is (',
@@ -235,7 +224,7 @@ if WriteToFile(tempFile) <> 0 then
   end
 else
   do
-    say 'Successfully wrote out ('||tempFile||')'
+    say 'Results successfully written to ('||tempFile||')'
   end
 
 call Cleanup
@@ -385,9 +374,10 @@ return fatalError('ERROR - ** failed to obtain LOCAL CPC info **')
 /*******************************************************/
 /* Function:  GetCPCInfo                               */
 /*                                                     */
-/* Retrieve the uri and target name associated with    */
-/* CPCname  and prime CPCuri and CPCtargetName         */
-/* variables with the info                             */
+/* Retrieve the uri, target name and SE version        */
+/* associated with CPCname                             */
+/* Prime CPCuri and CPCtargetName variables            */
+/* Verify SE version is z16 or higher                  */
 /*                                                     */
 /* Return 0 if successful, otherwise return -1         */
 /*******************************************************/
@@ -419,10 +409,15 @@ if emptyCPCArray > 0 | CPCInfoResponse = '' Then
     return fatalError('** failed to retrieve CPC **')
   end
 
-/* Parse the response to obtain the uri
-   and target name associated with CPC
+/* Parse the response to obtain 
+   the uri, target name and SE version 
+   associated with CPC
 */
 call JSON_parseJson CPCInfoResponse
+
+CPCversion = JSON_findValue(0,"se-version", HWTJ_STRING_TYPE) 
+if foundJSONValue(CPCversion) = FALSE then                    
+  methodSuccess = FALSE                                       
 
 CPCuri = JSON_findValue(0,"object-uri", HWTJ_STRING_TYPE)
 if foundJSONValue(CPCuri) = FALSE then
@@ -438,8 +433,15 @@ if methodSuccess then
     Say 'Successfully obtained CPC Info:'
     Say '  uri:'||CPCuri
     Say '  target-name:'||CPCtargetName
+    Say '  SE version: '||CPCversion
     Say
-    return 0
+    if substr(CPCversion,3,2) < 16 then                                 
+      do                                                                 
+       errMsg = '** Crypto attributes supported on z16 or higher only **'
+       return fatalError(errMsg)                                
+      end                                                                
+      else                                                                
+       return 0                                                         
   end
 
 Say
@@ -583,8 +585,7 @@ LPARQueryResponse = GetRequest(LPARQueryUri, CPCtargetName)
 
 if LPARQueryResponse = '' Then
   do
-    return fatalError('** Failed to retrieve Crypto info,
- ensure you are running on z16 or higher  **')
+    return fatalError('** Failed to retrieve Crypto info **')
   end
 
 /* Parse the response to obtain the values of the
@@ -2123,7 +2124,7 @@ GetArgs:
  argCount = words(S)
 
  /* require at least 2: -D <outputDataSet> */
- if argCount == 0 | argCount < 2 | argCount > 7 then
+ if argCount == 0 | argCount < 2 | argCount > 8 then
     return usage('Wrong number of arguments')
 
  dataSetProvided = FALSE
@@ -2156,7 +2157,7 @@ GetArgs:
       if i > argCount then
        return usage('-S option specified, but is missing Status')
 
-      LPAR_Status = word(S, i)
+      ReqLPAR_Status = word(S, i)
       i = i + 1
     end
   else if TRANSLATE(localArg) == '-D' then
@@ -2178,6 +2179,23 @@ GetArgs:
 
 if dataSetProvided = FALSE then
   return usage ('Missing required data set name for output')
+
+validst1 = TRANSLATE('operating')
+validst2 = TRANSLATE('not-operating')
+validst3 = TRANSLATE('not-activated')
+
+Select
+ When TRANSLATE(ReqLPAR_Status) = validst1 then NOP
+ When TRANSLATE(ReqLPAR_Status) = validst2 then NOP
+ When TRANSLATE(ReqLPAR_Status) = validst3 then NOP
+ OTHERWISE
+  do
+   call EntryArrow 
+   say 'Invalid LPAR status entered, default of operating will be used'
+   ReqLPAR_Status = 'operating'
+   call ExitArrow 
+  end
+end
 
 return 0  /* end function */
 

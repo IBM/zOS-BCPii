@@ -5,7 +5,7 @@ This samples queries Image Activation profiles to list crypto attributes for LPA
 This sample uses **HWIREST API** to do the following:
 - List CPCs and retrieve the URI and target name associated with the LOCAL CPC or the *CPCname* provided
 - List the LPARs on the designated CPC and query the LPAR status.
-- For each LPAR matching the reqested status (default is operating), retrieve the following information:
+- For each LPAR matching the requested status (default is operating), retrieve the following information:
      - crypto-activity-cpu-counter-authorization-control
      - assigned-crypto-domains
      - assigned-cryptos
@@ -35,8 +35,7 @@ This sample uses **HWIREST API** to do the following:
       - **required**
       - *outputDataSet* is the name of an existing partitioned data set
       - if the query is successful, a member containing the crypto
-        information in a CSV format will be stored into the specified data set: *outputDataSet(memberName)*
-        where the name of data set member is:
+        information in a CSV format will be stored into the specified data set: *outputDataSet(memberName)* where the name of data set member is:
         - LOCAL, if the LOCAL CPC was used
         - CPCname, if a specific CPC was specified via the -C option
   - *-C CPCname*
