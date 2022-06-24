@@ -89,9 +89,9 @@ ex 'HWI.HWIREST.REXX(RXENRGY1)' '-D HWI.RXENERGY.OUTPUT'
 ```
  - exec is running in a TSO/E rexx environment and will query the LOCAL CPC
 ```
-ex 'HWI.HWIREST.REXX(RXENRGY1)' '-D HWI.RXENERGY.OUTPUT -C T256'
+ex 'HWI.HWIREST.REXX(RXENRGY1)' '-D HWI.RXENERGY.OUTPUT -C CPC1'
 ```
- - exec is running in a TSO/E rexx environment and will query CPC T256
+ - exec is running in a TSO/E rexx environment and will query CPC CPC1
 
 **sample batch invocation via JCL:**
 <br>RXENRGY1 has been copied into data set HWI.HWIREST.REXX and HWI.RXENERGY.OUTPUT
@@ -107,10 +107,10 @@ ex 'HWI.HWIREST.REXX(RXENRGY1)' '-D HWI.RXENERGY.OUTPUT -C T256'
  //SYSTSIN  DD * UB
  PROFILE NOPREFIX
  EX 'HWI.HWIREST.REXX(RXENRGY1)' -
- '-D HWI.RXENERGY.OUTPUT -C T115'
+ '-D HWI.RXENERGY.OUTPUT -C CPC1'
  /*
  ```
- - exec is running in a TSO/E rexx environment and will query CPC T115
+ - exec is running in a TSO/E rexx environment and will query CPC CPC1
 
 ## Generated Output
 
