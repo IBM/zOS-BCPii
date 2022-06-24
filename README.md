@@ -71,7 +71,7 @@ This samples uses BCPii HWIREST REXX interface to audit LPARs on a target CPC. T
 
 - [**MVS System Management Facilities (SMF): BCPii SMF 106**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.4.0/com.ibm.zos.v2r4.ieag200/rec106.htm)
 - [**MVS System Codes: BCPii System Code ‘042’X**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.4.0/com.ibm.zos.v2r4.ieah700/idg8313.htm)
-
+- [**MVS System Messages, Vol 6 (GOS-IEA) HWI mesages**](https://www.ibm.com/docs/en/zos/2.5.0?topic=iea-hwi-messages)
 - [**zOS Hot Topics: BCPii - A RESTed development**](https://zos-hot-topics.com/2022/rest-enabled-bcpii/)
 
 <br/><br/><b>Other useful references:</b>
