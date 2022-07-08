@@ -72,7 +72,7 @@
 /*            if successful will create HWI.CRYPTO(LOCAL)              */
 /*                                                                     */
 /* DEPENDENCIES:                                                       */
-/*     z16 - The crypto properties are supported on z16 processors    */
+/*     z16 - The crypto properties are supported on z16 processors     */
 /*           and above.                                                */
 /*                                                                     */
 /* NOTES:                                                              */
@@ -89,7 +89,6 @@
 MACLIB_DATASET = 'SYS1.MACLIB'
 
 TEMP_DATASET = '' /* required input via -D */
-MEMBER_NAME = 'LOCAL' /* default CPC */
 
 TRUE = 1
 FALSE = 0
@@ -101,10 +100,12 @@ ISVREXX = FALSE  /* default to TSO/E, enable via -I */
 VERBOSE = FALSE  /* JSON parser specific, enabled via -V */
 localCPC = TRUE  /* default to lpars on the LOCAL CPC, change via -C */
 
+MemberName = 'LOCAL' /* default CPC */
+
 /* Properties constants */
-cryptoauth = 'crypto-activity-cpu-counter-authorization-control'
-assignedDomainsProp = 'assigned-crypto-domains'
-assignedCryptosProp = 'assigned-cryptos'
+CRYPTOAUTH = 'crypto-activity-cpu-counter-authorization-control'
+ASSIGNED_DOMAINS_PROP = 'assigned-crypto-domains'
+ASSIGNED_CRYPTOS_PROP = 'assigned-cryptos'
 
 /*********************************/
 /* Get program args              */
@@ -113,12 +114,23 @@ parse arg argString
 if GetArgs(argString) <> 0 then
   exit -1
 
-/**************************************/
-/* Before proceeding, ensure the      */
-/* data set specified actually exists */
-/**************************************/
+/********************************************************/
+/* Ensure the output dataset specified actually exists  */
+/********************************************************/
 if VerifyDataSet(TEMP_DATASET) <> 0 then
-  exit fatalErrorAndCleanup('** specified data set does not exist **')
+  do
+    errMsg = '** specified data set ('||TEMP_DATASET||') does not exist **'
+    exit fatalErrorAndCleanup(errMsg)
+  end
+
+/**********************************************/
+/* Ensure the requested LPAR status is valid  */
+/**********************************************/
+if VerifyStatus(ReqstdLPAR_Status) <> 0 then
+  do
+    errMsg = '** Unable to set requested LPAR status **'
+    exit fatalErrorAndCleanup(errMsg)
+  end
 
 if localCPC then
   say 'Obtaining LPARs on LOCAL CPC'
@@ -167,34 +179,31 @@ else
         errMsg = '** failed to get CPC info for ('||CPCname||') **'
         exit fatalErrorAndCleanup(errMsg)
       end
-    MEMBER_NAME = CPCname
+    MemberName = CPCname
   end
 
 if getLPARList() <> 0 then
   exit fatalErrorAndCleanup( '** failed to obtain list of LPARs **' )
 
-/****************************************
-  The CPC has at least one LPAR so prime
-  the list of attributes that need to be
-  retrieved for each LPAR
-****************************************/
+/***************************************************************
+  The CPC has at least one LPAR so prime the list of attributes
+  that need to be retrieved for each LPAR
+***************************************************************/
 call PrepLPARAttributes
 call PrepHdrRow
-
 outLC = 1 /* HdrRow */
+
 do iLpar = 1 to LPARsList.0
-  outLC = outLC + 1
   LPARuri = LPARsList.iLpar.uri
   LPARtargetName = LPARsList.iLpar.targetName
   LPARName = LPARsList.iLpar.Name
   LPARstatus = LPARsList.iLpar.status
-  REXXWRT.outLC = LPARName||','||LPARstatus
 
   /********************************************************
    Only retrieve content for LPARs in the specified status
    NOTE: Default is to retrive content for operating LPARs
   *********************************************************/
-  if LPARstatus <> ReqLPAR_Status then
+  if TRANSLATE(LPARstatus) <> TRANSLATE(ReqstdLPAR_Status) then
     do
       say '========================================================='
       say 'skipping over ('||LPARname||') because the status is (',
@@ -215,7 +224,7 @@ end /* query each LPAR */
 /* the final count for the lines to write out*/
 REXXWRT.0 = outLC
 
-tempFile ="'"||TEMP_DATASET||"("||MEMBER_NAME||")'"
+tempFile ="'"||TEMP_DATASET||"("||MemberName||")'"
 
 if WriteToFile(tempFile) <> 0 then
   do
@@ -409,9 +418,8 @@ if emptyCPCArray > 0 | CPCInfoResponse = '' Then
     return fatalError('** failed to retrieve CPC **')
   end
 
-/* Parse the response to obtain 
-   the uri, target name and SE version 
-   associated with CPC
+/* Parse the response to obtain the uri, target name
+   and SE version associated with the CPC 
 */
 call JSON_parseJson CPCInfoResponse
 
@@ -537,11 +545,6 @@ if foundJSONValue(LPARArray) = FALSE then
         errMsg = 'Failed to obtain status for LPAR entry ('||i||')'
         return fatalError(errMsg)
       end
-
-/*  say 'index ('||i||') Processed LPAR ('||LPARsList.i.name||, */
-/*                ') target name ('||LPARsList.i.targetName||,  */
-/*                ') with uri ('||LPARsList.i.uri||,            */
-/*                ') in status ('||LPARsList.i.status').'       */
  end /* endloop thru the JSON LPARs array */
 
 return 0
@@ -588,30 +591,30 @@ if LPARQueryResponse = '' Then
     return fatalError('** Failed to retrieve Crypto info **')
   end
 
-/* Parse the response to obtain the values of the
-   properties queried
-*/
+/* Parse the response to obtain the values of the properties queried */
+
+outLC = outLC + 1
+REXXWRT.outLC = ','||LPARName||','||LPARstatus
+
 call JSON_parseJson LPARQueryResponse
 
 do i = 1 to LPARAttribute.0
-    if LPARAttribute.i = cryptoauth then
+    if LPARAttribute.i = CRYPTOAUTH then
       do /* simple property */
         LPARAttributeResponse = JSON_findValue2(0, LPARAttribute.i)
         say LPARAttribute.i||':('||LPARAttributeResponse||')'
         outLC = outLC + 1
-        REXXWRT.outLC = cryptoauth
-        outLC = outLC + 1
-        REXXWRT.outLC = LPARAttributeResponse
+        REXXWRT.outLC = ',,,'||CRYPTOAUTH||','||LPARAttributeResponse
       end /* simple property */
     else /* complex property with nested content */
       do
         ArrayResponse = JSON_findValue(0,LPARAttribute.i,HWTJ_ARRAY_TYPE)
-        if LPARAttribute.i = assignedDomainsProp then
+        if LPARAttribute.i = ASSIGNED_DOMAINS_PROP then
           do
             if getassignedDomains(ArrayResponse) <> 0 then
               return fataError('failed to parse assigned domains')
           end
-        else if LPARAttribute.i = assignedCryptosProp then
+        else if LPARAttribute.i = ASSIGNED_CRYPTOS_PROP then
           do
             if getassignedCryptos(ArrayResponse) <> 0 then
               return fataError('failed to parse assigned cryptos')
@@ -663,7 +666,7 @@ getAssignedCryptos:
    say 'Processing information for '||Cryptos||' cryptos'
    say 'Number , Activation Type '
    outLC = outLC + 1
-   REXXWRT.outLC = keyType
+   REXXWRT.outLC = ',,,'||keyType||' (Number & Activation Type Array)'
    outLC = outLC + 1
  drop CryList.
  CryList.0 = Cryptos
@@ -676,7 +679,7 @@ getAssignedCryptos:
     say CryList.j.num || ' , ' || Crylist.j.type
                           
     if j=1 then
-      REXXWRT.outLC = CryList.j.num||','||CryList.j.type
+      REXXWRT.outLC = ',,,'||CryList.j.num||','||CryList.j.type
     else
       REXXWRT.outLC = REXXWRT.outLC||','||CryList.j.num||','||CryList.j.type
 
@@ -723,7 +726,7 @@ getAssignedDomains:
    say 'Processing information for '||Domains||' crypto domains'
    say 'Index , Mode'
    outLC = outLC + 1
-   REXXWRT.outLC = keyType
+   REXXWRT.outLC = ',,,'||keyType||' (Domain Index & Access Mode Array)'
    outLC = outLC + 1
  drop DmnsList.
  DmnsList.0 = Domains
@@ -736,7 +739,7 @@ getAssignedDomains:
     say DmnsList.k.index || ' , ' || Dmnslist.k.mode
                           
     if k=1 then
-      REXXWRT.outLC = DmnsList.k.index||','||DmnsList.k.mode
+      REXXWRT.outLC = ',,,'||DmnsList.k.index||','||DmnsList.k.mode
     else
       REXXWRT.outLC = REXXWRT.outLC||','||DmnsList.k.index||','||DmnsList.k.mode
 
@@ -748,7 +751,7 @@ getAssignedDomains:
 /*******************************************************/
 /* Function:  GetRequest                               */
 /*                                                     */
-/* Default to a GET of all the cpcs if no args provided*/
+/* Default to GET all the cpcs if no args provided     */
 /* optional args:                                      */
 /*     arg1 -> uri                                     */
 /*     arg2 -> targetName                              */
@@ -2109,19 +2112,27 @@ JSON_surfaceDiag: procedure expose DiagArea.
   say
  return  /* end procedure */
 
-/***********************************************/
-/* Function:  GetArgs                          */
-/*                                             */
-/* Parse script arguments and make appropriate */
-/* variable assignments, or return fatal error */
-/* code via usage() invocation.                */
-/*                                             */
-/* Returns: 0 if successful                    */
-/*          -1 if not successful               */
-/***********************************************/
+/***********************************************************************/
+/* Function:  GetArgs                                                  */
+/*                                                                     */
+/* Parse script arguments and make appropriate variable assignments    */
+/* or return fatal error code via usage() invocation.                  */
+/*    Required input parameters:                                       */
+/*      -D <data set name> name of a pre-existing partitioned data set */
+/*    Optional input parameters:                                       */
+/*      -C <CPCname> name of the CPC to query, default is LOCAL CPC    */
+/*      -S <Status> LPAR Status of the profiles to query,              */
+/*         defaults to operating                                       */
+/*      -I indicate running out of ISV REXX environment,               */
+/*         default is TSO/E                                            */
+/*      -V turn on additional verbose JSON tracing                     */       
+/*                                                                     */
+/* Returns: 0 if successful                                            */
+/*          -1 if not successful                                       */
+/***********************************************************************/
 GetArgs:
- S = arg(1)
- argCount = words(S)
+ parmString = arg(1)
+ argCount = words(parmString)
 
  /* require at least 2: -D <outputDataSet> */
  if argCount == 0 | argCount < 2 | argCount > 8 then
@@ -2130,7 +2141,7 @@ GetArgs:
  dataSetProvided = FALSE
  i = 1
  do while i < (argCount + 1)
-   localArg = word(S,i)
+   localArg = word(parmString,i)
    if TRANSLATE(localArg) == '-I' then
      do /* -I for isvrexx */
        ISVREXX = TRUE
@@ -2147,7 +2158,7 @@ GetArgs:
       if i > argCount then
        return usage('-C option specified, but is missing CPC name')
 
-      CPCname = word(S, i)
+      CPCname = word(parmString, i)
       localCPC = FALSE
       i = i + 1
     end
@@ -2157,7 +2168,7 @@ GetArgs:
       if i > argCount then
        return usage('-S option specified, but is missing Status')
 
-      ReqLPAR_Status = word(S, i)
+      ReqstdLPAR_Status = word(parmString, i)
       i = i + 1
     end
   else if TRANSLATE(localArg) == '-D' then
@@ -2166,7 +2177,7 @@ GetArgs:
       if i > argCount then
        return usage('-D option specified, but is missing the data set name')
 
-      TEMP_DATASET = word(S, i)
+      TEMP_DATASET = word(parmString, i)
       dataSetProvided = TRUE
       i = i + 1
     end
@@ -2180,20 +2191,37 @@ GetArgs:
 if dataSetProvided = FALSE then
   return usage ('Missing required data set name for output')
 
-validst1 = TRANSLATE('operating')
-validst2 = TRANSLATE('not-operating')
-validst3 = TRANSLATE('not-activated')
+return 0  /* end function */
+
+/***********************************************/
+/* Function: VerifyStatus                      */
+/*                                             */
+/* Verify the requested LPAR status            */
+/* If invalid, set it to 'operating'           */
+/*                                             */
+/* Returns: 0 if successful                    */
+/*         -1 if not successful                */
+/***********************************************/
+VerifyStatus:
+
+statusString = arg(1)
+LPAR_STATUS_NOT_ACTIVATED = TRANSLATE('not-activated')
+LPAR_STATUS_NOT_OPERATING = TRANSLATE('not-operating')
+LPAR_STATUS_OPERATING = TRANSLATE('operating')
 
 Select
- When TRANSLATE(ReqLPAR_Status) = validst1 then NOP
- When TRANSLATE(ReqLPAR_Status) = validst2 then NOP
- When TRANSLATE(ReqLPAR_Status) = validst3 then NOP
+ When TRANSLATE(statusString) = LPAR_STATUS_NOT_ACTIVATED
+  then say 'LPAR status '||statusString||' will be used'
+ When TRANSLATE(statusString) = LPAR_STATUS_NOT_OPERATING
+  then say 'LPAR status '||statusString||' will be used'
+ When TRANSLATE(statusString) = LPAR_STATUS_OPERATING
+  then say 'LPAR status '||statusString||' will be used'
  OTHERWISE
   do
-   call EntryArrow 
+   call EntryArrow
    say 'Invalid LPAR status entered, default of operating will be used'
-   ReqLPAR_Status = 'operating'
-   call ExitArrow 
+   ReqstdLPAR_Status = 'operating'
+   call ExitArrow
   end
 end
 
@@ -2219,6 +2247,8 @@ usage:
  say '    OPTIONAL'
  say '         -C CPCname, name of the CPC to query, default if'
  say '               not specified is the LOCAL CPC'
+ say '         -S <Status> LPAR Status of the profiles to query,'
+ say '               default if invalid or not specified is operating'
  say '         -I indicate running in an isv rexx, default if not'
  say '               specified is TSO/E REXX'
  say '         -V turn on additional verbose JSON tracing'
@@ -2244,14 +2274,14 @@ if LPARAttribute.0 < 1 then
 
 /* prep the header line in the CSV file */
 
-REXXWRT.1 = 'LPAR Name,status'                   
+REXXWRT.1 = MemberName||',LPAR Name,LPAR status,Attributes'                  
 
 return  /* end function */
 
 /***********************************************************************/
 /* Function:  PreLPARAttributes()                                      */
 /*                                                                     */
-/* Generate LPARAttribute stem that contains the propery names to be   */
+/* Generate LPARAttribute stem that contains the property names to be  */
 /* retrieved for an LPAR.                                              */
 /*                                                                     */
 /* In the case where the property is a simple entity and the value     */
@@ -2363,7 +2393,7 @@ return  rc /* end function */
 /* userDataSet argument exists.                  */
 /*                                               */
 /* Return 0 if data set exists,                  */
-/*          otherwise a non zero                 */
+/* Otherwise return a non zero                   */
 /*************************************************/
 VerifyDataSet:
 parse arg userDataSet
@@ -2376,9 +2406,8 @@ if ISVREXX then
     if rc <> 0 then
       do
         say '** fatal error, attempt to verify ('||,
-                 userDataSet||') exists using ALLOC '||,
-                 'resulted in ('||rc||')'
-
+            userDataSet||') exists using ALLOC '||,
+            'resulted in ('||rc||')'
       end
     else
       do

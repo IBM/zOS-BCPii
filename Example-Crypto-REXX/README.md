@@ -28,7 +28,7 @@ This sample uses **HWIREST API** to do the following:
 ## Invocation
 **Syntax**:
 ```
-  RXCRYPT1 -D outputDataSet [-C CPCname] [-S Status] [-I] [-V]                                                 
+  RXCRYPT1 -D outputDataSet [-C CPCname] [-S Status] [-I] [-V]                                                
  ```
  where:
   - *-D outputDataSet*
@@ -67,13 +67,13 @@ ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT'
 ```
  - exec is running in a TSO/E rexx environment and will query the LOCAL CPC
 ```
-ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT -C T256'
+ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT -C CPC1'
 ```
- - exec is running in a TSO/E rexx environment and will query CPC T256
+ - exec is running in a TSO/E rexx environment and will query CPC CPC1
  ```
-ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT -C T256 -S not-activated'
+ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT -C CPC1 -S not-activated'
 ```
- - exec is running in a TSO/E rexx environment, will query CPC T256 and query info for LPARs which are in not-activated status
+ - exec is running in a TSO/E rexx environment, will query CPC CPC1 and query info for LPARs which are in not-activated status
 
 **sample batch invocation via JCL:**
 <br>RXCRYPT1 has been copied into data set HWI.HWIREST.REXX and HWI.RXCRYPTO.OUTPUT
@@ -89,10 +89,10 @@ ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT -C T256 -S not-activated
  //SYSTSIN  DD * 
  PROFILE NOPREFIX
  EX 'HWI.HWIREST.REXX(RXCRYPT1)' -
- '-D HWI.RXCRYPTO.OUTPUT -C T115'
+ '-D HWI.RXCRYPTO.OUTPUT -C CPC1'
  /*
  ```
- - exec is running in a TSO/E rexx environment and will query CPC T115
+ - exec is running in a TSO/E rexx environment and will query CPC CPC1
 
 ## Generated Output
 
