@@ -1,6 +1,6 @@
 ## Example-Crypto-REXX
 
-This samples queries Image Activation profiles to list crypto attributes for LPARs. It stores the results, which are in .csv format, in a z/OS data set member.  You can import the content into Microsoft™ Excel or another application of your choice.
+This sample queries Image Activation profiles to list crypto attributes for LPARs. It stores the results, which are in .csv format, in a z/OS data set member.  You can import the content into Microsoft™ Excel or another application of your choice.
 
 This sample uses **HWIREST API** to do the following:
 - List CPCs and retrieve the URI and target name associated with the LOCAL CPC or the *CPCname* provided
