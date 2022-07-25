@@ -358,8 +358,6 @@ GetArgs:
 
   argCount = Words(ARG_STR)
 
-  Say 'The number of arguments found is: ' || argCount
-
   If argCount > MAX_NUM_OF_ARGS Then
     Return Usage( 'Wrong number of arguments' )
 
@@ -415,7 +413,7 @@ GetArgs:
        * a user's convenience
        */
       optionSpecified = Translate(Word(ARG_STR, i))
-      Say 'The option specified was: ' || optionSpecified
+
       If optionSpecified == 'ADD' Then Do
         addLPARToCustomUserGroup = TRUE
       End
