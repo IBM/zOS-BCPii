@@ -44,7 +44,7 @@ USRGRP01 has been copied into data set HWI.USER.REXX <br>
 
   - Remote CPC and LPAR:
     ```
-    ex 'HWI.USER.REXX(USRGRP01) '-C CPC1 -L LPAR1'
+    ex 'HWI.USER.REXX(USRGRP01)' '-C CPC1 -L LPAR1'
     ```
 
   List the members of the TEST Custom User Group:
@@ -55,7 +55,7 @@ USRGRP01 has been copied into data set HWI.USER.REXX <br>
 
   - Remote CPC and LPAR:
     ```
-    ex 'HWI.USER.REXX(USRGRP01) '-C CPC1 -L LPAR1 -G TEST'
+    ex 'HWI.USER.REXX(USRGRP01)' '-C CPC1 -L LPAR1 -G TEST'
     ```
 
   Add an LPAR as a new member to the TEST Custom User Group
@@ -67,7 +67,7 @@ USRGRP01 has been copied into data set HWI.USER.REXX <br>
 
   - Remote CPC and LPAR:
     ```
-    ex 'HWI.USER.REXX(USRGRP01) '-C CPC1 -L LPAR1 -G TEST -A ADD'
+    ex 'HWI.USER.REXX(USRGRP01)' '-C CPC1 -L LPAR1 -G TEST -A ADD'
     ```
 
   Remove an LPAR member from the TEST Custom User Group
@@ -79,7 +79,7 @@ USRGRP01 has been copied into data set HWI.USER.REXX <br>
 
   - Remote CPC and LPAR:
     ```
-    ex 'HWI.USER.REXX(USRGRP01) '-C CPC1 -L LPAR1 -G TEST -A REMOVE'
+    ex 'HWI.USER.REXX(USRGRP01)' '-C CPC1 -L LPAR1 -G TEST -A REMOVE'
     ```
 
 **Sample Batch Invocation via JCL:**
@@ -100,7 +100,7 @@ USRGRP01 has been copied into data set HWI.USER.REXX
  ```
  - exec is running in a TSO/E rexx environment
 
-## Generated Output
+## Example Generated Output
 
 ### Success Path for List Custom User Groups Invocation
 ```

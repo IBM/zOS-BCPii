@@ -67,14 +67,16 @@
  *          return
  *
  *      6b. If any failures occurred when adding or removing the target
- *          LPAR then the sample will display them and exit
+ *          LPAR then the sample will display the error messages and
+ *          exit
  *
  *      6c. If the ADD action argument was specified, the sample will
  *          attempt to add the target LPAR to the target user group. If
  *          the REMOVE action argument was specified, the sample will
- *          attempt to remove the target LPAR to the target user group.
- *          The sample will then fetch display an updated list of the
- *          user group members if the ADD or REMOVE action was specified
+ *          attempt to remove the target LPAR from the target user
+ *          group. The sample will then fetch and display an updated
+ *          list of the user group members if the ADD or REMOVE action
+ *          was specified
  *
  *    7.  The sample will cleanup and exit
  *
@@ -98,34 +100,34 @@
  *  List all Custom User Groups:
  *
  *    Local CPC and LPAR:
- *      ex 'HWI.USER.REXX(USRGRP01)'
+ *     ex 'HWI.USER.REXX(USRGRP01)'
  *
  *    Remote CPC and LPAR:
- *      ex 'HWI.USER.REXX(USRGRP01) '-C CPC1 -L LPAR1'
+ *     ex 'HWI.USER.REXX(USRGRP01)' '-C CPC1 -L LPAR1'
  *
  *  Lists the members of the TEST Custom User Group:
  *
  *    Local CPC and LPAR:
- *      ex 'HWI.USER.REXX(USRGRP01)' '-G TEST'
+ *     ex 'HWI.USER.REXX(USRGRP01)' '-G TEST'
  *
  *    Remote CPC and LPAR:
- *      ex 'HWI.USER.REXX(USRGRP01) '-C CPC1 -L LPAR1 -G TEST'
+ *     ex 'HWI.USER.REXX(USRGRP01)' '-C CPC1 -L LPAR1 -G TEST'
  *
  *  Add the target local LPAR to the TEST Custom User Group
  *
  *    Local CPC and LPAR:
- *      ex 'HWI.USER.REXX(USRGRP01)' '-G TEST -A ADD'
+ *     ex 'HWI.USER.REXX(USRGRP01)' '-G TEST -A ADD'
  *
  *    Remote CPC and LPAR:
- *      ex 'HWI.USER.REXX(USRGRP01) '-C CPC1 -L LPAR1 -G TEST -A ADD'
+ *     ex 'HWI.USER.REXX(USRGRP01)' '-C CPC1 -L LPAR1 -G TEST -A ADD'
  *
  *  Remove the target local LPAR from the TEST Custom User Group
  *
  *    Local CPC and LPAR:
- *      ex 'HWI.USER.REXX(USRGRP01)' '-G TEST -A REMOVE'
+ *     ex 'HWI.USER.REXX(USRGRP01)' '-G TEST -A REMOVE'
  *
  *    Remote CPC and LPAR:
- *      ex 'HWI.USER.REXX(USRGRP01) '-C CPC1 -L LPAR1 -G TEST -A REMOVE'
+ *     ex 'HWI.USER.REXX(USRGRP01)' '-C CPC1 -L LPAR1 -G TEST -A REMOVE'
  *
  * Dependencies:
  *
@@ -184,7 +186,7 @@ localLPAR = TRUE
 /*
  * Misc. globals
  */
-targetedUserGroup = ""
+targetUserGroup = ""
 isMissingTargetGroup = TRUE
 
 addLPARToCustomUserGroup = FALSE
@@ -223,7 +225,7 @@ Main:
     Say 'HWIHOST("ON") return code is :(' || hwiHostRC || ')'
 
     If hwiHostRC <> 0 Then
-      Exit FatalErrorAndCleanup('** unable to turn on HWIHOST **')
+      Exit FatalErrorAndCleanup('Unable to turn on HWIHOST')
 
     HWIHOST_ON = TRUE
   End
@@ -236,7 +238,7 @@ Main:
   Call GetJSONToolkitConstants
 
   If RESULT <> 0 Then
-    Exit FatalErrorAndCleanup( '** Environment error **' )
+    Exit FatalErrorAndCleanup('Environment error')
 
   PROC_GLOBALS = 'VERBOSE parserHandle ' || HWT_CONSTANTS
 
@@ -245,18 +247,18 @@ Main:
    ********************************************************************/
   Call InitJSONParser
   If RESULT <> 0 Then
-    Exit FatalErrorAndCleanup( '** Parser init failure **' )
+    Exit FatalErrorAndCleanup( 'Parser init failure' )
 
   /********************************************************************
    * Grab the CPC Information
    ********************************************************************/
   If localCPC Then Do
     If GetLocalCPCInfo() <> TRUE Then
-      Exit FatalErrorAndCleanup( '** failed to get local CPC info **' )
+      Exit FatalErrorAndCleanup( 'Failed to get local CPC info' )
     End
   Else Do
     If GetCPCInfo() <> TRUE Then
-      Exit FatalErrorAndCleanup( '** failed to get CPC info **' )
+      Exit FatalErrorAndCleanup( 'Failed to get CPC info' )
   End
 
   /********************************************************************
@@ -264,11 +266,11 @@ Main:
    ********************************************************************/
   If localLPAR Then Do
     If GetLocalLPARInfo(CPCuri, CPCtargetName) <> TRUE Then
-      Exit FatalErrorAndCleanup( '** failed to get local LPAR info **' )
+      Exit FatalErrorAndCleanup( 'Failed to get local LPAR info' )
     End
   Else Do
     If GetLPARInfo(CPCuri, CPCtargetName, LPARname) <> TRUE Then
-      Exit FatalErrorAndCleanup( '** failed to get LPAR info **' )
+      Exit FatalErrorAndCleanup( 'Failed to get LPAR info' )
   End
 
   /********************************************************************
@@ -290,7 +292,7 @@ Main:
   )
 
   /********************************************************************
-    * Remove the target LPAR to the Custom User Group if specified
+    * Remove the target LPAR from the Custom User Group if specified
     *******************************************************************/
   If removeLPARFromCustomUserGroup == TRUE Then Do
     Say 'Removing target LPAR from Custom User Group'
@@ -511,10 +513,10 @@ InterpretRexxFile:
   End
 
   If rc <> 0 Then Do
-    errMsg = '** fatal error, rc=(' || rc ||,
+    errMsg = 'RC = (' || rc ||,
              ') encountered trying to read content from (', || file ||,
              '), if in ISV environment, ensure you used ',
-             '-I option **'
+             '-I option'
     Exit FatalErrorAndCleanup(errMsg)
   End
 
@@ -614,7 +616,7 @@ GetLocalCPCInfo:
   CPCInfoResponse = GetRequest(reqUri)
 
   If CPCInfoResponse = '' Then Do
-    Say 'FatalError ** failed to retrieve CPC info **'
+    Say 'Failed to retrieve CPC info **'
     Return 0
   End
 
@@ -626,7 +628,7 @@ GetLocalCPCInfo:
   CPCArray = FindJSONValue(0, "cpcs", HWTJ_ARRAY_TYPE)
 
   If WasJSONValueFound(CPCArray) = FALSE Then Do
-    Say 'FatalError ** failed to retrieve CPCs **'
+    Say 'Failed to retrieve CPCs **'
     Return 0
   End
 
@@ -635,7 +637,7 @@ GetLocalCPCInfo:
    ********************************************************************/
   CPCs = GetJSONArrayDim(CPCArray)
   If CPCs <= 0 Then
-    Return FatalError('** Failed retrieving number of array entries **')
+    Return FatalError('Failed retrieving number of array entries')
 
   /*********************************************************************
    * Traverse the CPCs array to populate CPCsList.
@@ -655,10 +657,10 @@ GetLocalCPCInfo:
 
     If CPClocation = 'local' Then Do
 
-      Say 'found local CPC'
+      Say 'Found local CPC'
 
       If localCPCfound <> FALSE Then Do
-        Say 'FatalError ** found two local CPCs **'
+        Say 'Error: Found two local CPCs **'
         Return 0
       End
 
@@ -671,7 +673,7 @@ GetLocalCPCInfo:
       )
 
       If WasJSONValueFound(CPCuri) = FALSE Then Do
-        Say 'FatalError **failed to obtain CPC uri**'
+        Say 'Failed to obtain CPC URI'
         Return 0
       End
 
@@ -682,7 +684,7 @@ GetLocalCPCInfo:
       )
 
       If WasJSONValueFound(CPCtargetName) = FALSE Then Do
-        Say 'FatalError **failed to obtain CPC target name**'
+        Say 'Failed to obtain CPC target name'
         Return 0
       End
 
@@ -692,7 +694,7 @@ GetLocalCPCInfo:
         HWTJ_STRING_TYPE,
       )
       If WasJSONValueFound(CPCname) = FALSE Then Do
-        Say 'FatalError **failed to obtain CPC name**'
+        Say 'Failed to obtain CPC name'
         Return 0
       End
     End
@@ -752,7 +754,7 @@ GetCPCInfo:
 
   emptyCPCArray = INDEX(CPCInfoResponse, emptyCPCResponse)
   If emptyCPCArray > 0 | CPCInfoResponse = '' Then Do
-    Say 'FatalError ** failed to get CPC info **'
+    Say 'Failed to get CPC info'
     Return 0
   End
 
@@ -784,7 +786,7 @@ GetCPCInfo:
     Say '  target-name:('||CPCtargetName||')'
     Say 'full response body:('||CPCInfoResponse||')'
     Say
-    Say 'Fatal ERROR - ** failed to obtain CPC info **'
+    Say 'Failed to obtain CPC info'
     Say
   End
 
@@ -844,8 +846,8 @@ GetLPARInfo:
   emptyLPARArray = Index(LPARInfoResponse, emptyLPARResponse)
 
   If emptyLPARArray > 0 | LPARInfoResponse = '' Then Do
-    Say 'fatalError ** failed to get LPAR '|| TARGET_LPAR_NAME ||,
-        ' info **'
+    Say 'Failed to get LPAR '|| TARGET_LPAR_NAME ||,
+        ' info'
     Return 0
   End
 
@@ -878,7 +880,7 @@ GetLPARInfo:
     Say '  target-name:(' || lparTargetName || ')'
     Say 'full response body:(' || LPARInfoResponse || ')'
     Say
-    Say 'fatalError ** failed to obtain LPAR info **'
+    Say 'Failed to obtain LPAR info'
   End
 
 Return methodSuccess
@@ -926,7 +928,7 @@ GetLocalLPARInfo:
   LPARInfoResponse = GetRequest(lparURI, TARGET_CPC_NAME)
 
   If LPARInfoResponse = '' Then Do
-    Say 'fatalError ** failed to get local LPAR info **'
+    Say 'Failed to get local LPAR info'
     Return 0
   End
 
@@ -935,7 +937,7 @@ GetLocalLPARInfo:
   LPARArray = FindJSONValue(0, "logical-partitions", HWTJ_ARRAY_TYPE)
 
   If WasJSONValueFound(LPARArray) = FALSE Then Do
-    Say 'fatalError ** failed to retrieve LPARs **'
+    Say 'Failed to retrieve LPARs'
     Return 0
   End
 
@@ -946,7 +948,7 @@ GetLocalLPARInfo:
 
   If LPARs <= 0 Then
     Return FatalError(,
-      '** Unable to retrieve number of array entries **',
+      'Unable to retrieve number of array entries',
     )
 
   /********************************************************************
@@ -967,10 +969,10 @@ GetLocalLPARInfo:
     )
 
     If LPARlocal = 'true' Then Do
-      Say 'found local LPAR'
+      Say 'Found local LPAR'
 
       If localLPARfound <> 0 Then Do
-        Say 'fatalError ** found two local LPARs **'
+        Say 'Found two local LPARs'
         Return 0
       End
       localLPARfound = TRUE
@@ -982,7 +984,7 @@ GetLocalLPARInfo:
       )
 
       If WasJSONValueFound(lparURI) = FALSE Then Do
-        Say 'fatalError **failed to obtain LPAR uri**'
+        Say 'Failed to obtain LPAR URI'
         Return 0
       End
 
@@ -993,7 +995,7 @@ GetLocalLPARInfo:
       )
 
       If WasJSONValueFound(lparTargetName) = FALSE Then Do
-        Say 'fatalError **failed to obtain LPAR target name**'
+        Say '**failed to obtain LPAR target name**'
         Return 0
       End
 
@@ -1004,7 +1006,7 @@ GetLocalLPARInfo:
       )
 
       If WasJSONValueFound(LPARname) = FALSE Then Do
-        Say 'fatalError **failed to obtain LPAR name**'
+        Say '**failed to obtain LPAR name**'
         Return 0
       End
     End
@@ -1058,7 +1060,7 @@ GetCustomUserGroups:
   )
 
   If customUserGrpResponse = '' Then Do
-    Say 'FatalError: Failed to find Custom User Groups **'
+    Say 'Failed to find Custom User Groups **'
     Exit 0
   End
 
@@ -1083,7 +1085,7 @@ GetCustomUserGroups:
    * variables. We use the REXX (1-based) idiom  but adjust for the
    * differing (0-based) idiom of the toolkit.
    ********************************************************************/
-  Say 'Procesing the ' || numOfCustUsrGrps ||,
+  Say 'Processing the ' || numOfCustUsrGrps ||,
       ' number of custom user groups'
 
   Drop customUserGroups.
@@ -1162,7 +1164,7 @@ GetTargetCustomUserGroupURI:
    * There are two potential checks we want to ensure before attempting
    * to fetch the Custom User Group URI:
    *
-   * 1. We wanna check if a target group was specified. If no target
+   * 1. We want to check if a target group was specified. If no target
    *    group was specified then we simply wish to exit the sample
    *    since the sample was designed to handle the missing parm.
    *
@@ -1225,7 +1227,7 @@ GetCustomUserGroupMembers:
   )
 
   If customGroupMembersResponse = '' Then Do
-    Say 'FatalError ** failed to find customer user group members **'
+    Say 'Failed to find customer user group members'
     Return 0
   End
 
@@ -1241,12 +1243,15 @@ GetCustomUserGroupMembers:
   )
 
   If WasJSONValueFound(groupMembersList) = FALSE Then Do
-    Return FatalError(' ** Failed to retrieve Custom User Groups ** ')
+    Return FatalError(,
+      'Failed to retrieve Custom User Groups',
+    )
   End
 
   numOfCustUsrGrpMems = GetJSONArrayDim(groupMembersList)
   If numOfCustUsrGrpMems == 0 Then Do
     Say 'No group members to show for target Custom User Group'
+
     If removeLPARFromCustomUserGroup == TRUE Then Do
       Return FatalError(,
         'Error: No group members to target for the designated action',
@@ -1269,7 +1274,7 @@ GetCustomUserGroupMembers:
   End
   Else If numOfCustUsrGrpMems < 0 Then Do
     Return FatalError(,
-      ' ** Unable to retrieve number of group members ** ',
+      'Unable to retrieve number of group members',
     )
   End
 
@@ -1294,7 +1299,7 @@ GetCustomUserGroupMembers:
     )
 
     If WasJSONValueFound(customUsrGrpMemberName) = FALSE Then Do
-      Say ' ** Failed to find Custom User Group Member name ** '
+      Say 'Failed to find Custom User Group Member name'
       Return 0
     End
 
@@ -1305,7 +1310,7 @@ GetCustomUserGroupMembers:
     )
 
     If WasJSONValueFound(customUsrGrpMemberURI) = FALSE Then Do
-      Say ' ** Failed to find Custom User Group Member URI ** '
+      Say 'Failed to find Custom User Group Member URI'
       Return 0
     End
 
@@ -1359,7 +1364,7 @@ Return 0
 /**********************************************************************
  * Function: RemoveGroupMember
  *
- * Purpose: Remove a LPAR group member to the specified Custom User
+ * Purpose: Remove a LPAR group member from the specified Custom User
  *          Group
  *
  * Input: GROUP_ID - The ID of the group to target
@@ -1370,7 +1375,7 @@ Return 0
  *
  * Side-Effects:
  *
- *  1. Removes an lpar object to the custom user group
+ *  1. Removes an lpar object from the custom user group
  *
  **********************************************************************/
 RemoveGroupMember:
@@ -1682,7 +1687,7 @@ GetJSONToolkitConstants:
   RexxRC = RC
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtconst', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( '** hwtconst (json) failure **' )
+    Return FatalError( 'HWTCONST (json) failure' )
   End
 
 Return 0
@@ -1722,7 +1727,7 @@ InitJSONParser:
   RexxRC = RC
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtjinit', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( '** hwtjinit failure **' )
+    Return FatalError('HWTJINIT failure')
   End
 
   /*********************************************************************
@@ -1731,7 +1736,7 @@ InitJSONParser:
    ********************************************************************/
   parserHandle = handleOut
   If VERBOSE Then
-    Say 'Json Parser init (hwtjinit) succeeded'
+    Say 'Json Parser init (HWTJINIT) succeeded'
 
  PARSER_INIT = TRUE
 Return 0
@@ -1768,7 +1773,7 @@ ReInitParser:
 
   Call InitJSONParser
   If RESULT <> 0 Then
-    Exit FatalErrorAndCleanup( '** Parser init failure **' )
+    Exit FatalErrorAndCleanup( 'JSON parser init failure' )
 
 Return 0
 
@@ -1885,7 +1890,7 @@ TraverseJsonObject: Procedure Expose (PROC_GLOBALS)
   numEntries = GetNumOfJSONObjectEntries(objectHandle)
 
   If numEntries <= 0 Then
-    Return FatalError( '** Unable to determine num object entries **' )
+    Return FatalError('Unable to determine num object entries')
 
   /********************************************************************
    * Since the REXX iteration idiom is 1-based, we iterate from 1
@@ -1904,7 +1909,7 @@ TraverseJsonObject: Procedure Expose (PROC_GLOBALS)
 
       If RESULT <> 0 Then
         Return FatalError(,
-          '** Unable to obtain object entry (' || i-1 ||') **',
+          'Unable to obtain object entry (' || i-1 ||')',
         )
 
       /****************************************************************
@@ -1986,7 +1991,7 @@ TraverseJsonEntry: Procedure Expose (PROC_GLOBALS)
       /****************************************************************
        * If we've reached this point there is a problem.
        ****************************************************************/
-      Return FatalError( '** unable to retrieve JSON type **' )
+      Return FatalError( 'Unable to retrieve JSON type' )
     End
   End
 
@@ -2016,7 +2021,7 @@ TraverseJsonArray: Procedure Expose (PROC_GLOBALS)
 
   numEntries = GetJSONArrayDim( arrayHandle )
   If numEntries == 0 Then Do
-    Say '(empty array)'
+    Say 'Traversed an empty array'
     Return 0
   End
 
@@ -2077,7 +2082,7 @@ GetJSONValue:
 
     If IsThereAJSONError(RexxRC,ReturnCode) Then Do
       Call SurfaceJSONDiag 'hwtjgval', RexxRC, ReturnCode, DiagArea.
-      Say '** hwtjgval failure **'
+      Say 'HWTJGVAL failure'
       valueOut = ''
     End
 
@@ -2104,7 +2109,7 @@ GetJSONValue:
     RexxRC = RC
     If IsThereAJSONError(RexxRC,ReturnCode) Then Do
       Call SurfaceJSONDiag 'hwtjgbov', RexxRC, ReturnCode, DiagArea.
-      Say '** hwtjgbov failure **'
+      Say 'HWTJGBOV failure'
       valueOut = ''
     End
 
@@ -2173,7 +2178,7 @@ ParseJSONData:
 
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtjpars', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( '** hwtjpars failure **' )
+    Return FatalError( 'HWTJPARS failure' )
   End
 
   If VERBOSE Then
@@ -2219,7 +2224,7 @@ TermJSONParser:
 
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtjterm', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( '** hwtjterm failure **' )
+    Return FatalError('HWTJTERM failure')
   End
 
   If VERBOSE Then
@@ -2332,7 +2337,7 @@ FindJSONValue:
 
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtjsrch', RexxRC, ReturnCode, DiagArea.
-    Say '** hwtjsrch failure **'
+    Say 'HWTJSRCH failure'
     Return ''
   End
 
@@ -2344,9 +2349,9 @@ FindJSONValue:
 
   If resultType <> expectedType Then Do
     If VERBOSE Then
-      Say '** Type mismatch (' ||,
+      Say 'Type mismatch (' ||,
           resultType || ','    ||,
-          expectedType || ') **'
+          expectedType || ')'
 
     If resultType == HWTJ_FALSEVALUETYPE Then
       Return 'false'
@@ -2399,7 +2404,7 @@ FindJSONValue:
 
     If IsThereAJSONError(RexxRC,ReturnCode) Then Do
       Call SurfaceJSONDiag 'hwtjgval', RexxRC, ReturnCode, DiagArea.
-      Say '** hwtjgval failure **'
+      Say 'HWTJGVAL failure'
       Return ''
     End
 
@@ -2429,7 +2434,7 @@ FindJSONValue:
 
     If IsThereAJSONError(RexxRC,ReturnCode) Then Do
       Call SurfaceJSONDiag 'hwtjgbov', RexxRC, ReturnCode, DiagArea.
-      Say '** hwtjgbov failure **'
+      Say 'HWTJGBOV failure'
       Return ''
     End
 
@@ -2446,7 +2451,7 @@ FindJSONValue:
    *       avoid wasteful processing).
    ********************************************************************/
   If VERBOSE Then
-    Say '** No return value found **'
+    Say 'No return value found'
 
 Return ''
 
@@ -2485,7 +2490,7 @@ GetJSONType:
 
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtjgjst', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( '** hwtjgjst failure **' )
+    Return FatalError( 'HWTJGJST failure' )
   End
   Else Do
     /******************************************************************
@@ -2553,7 +2558,7 @@ GetJSONArrayDim:
 
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtjgnue', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( '** hwtjgnue failure **' )
+    Return FatalError( 'HWTJGNUE failure' )
   End
 
   arrayDim = strip(dimOut,'L',0)
@@ -2604,7 +2609,7 @@ GetJSONArrayEntry:
 
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtjgaen', RexxRC, ReturnCode, DiagArea.
-    Say '** hwtjgaen failure **'
+    Say 'HWTJGAEN failure'
   End
   Else
     result = handleOut
@@ -2658,7 +2663,7 @@ GetJSONObjectEntry:
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Say 'Unable to get object entry(' || whichEntry || ')'
     Call SurfaceJSONDiag 'hwtjgoen', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( '** hwtjgoen failure **' )
+    Return FatalError( 'HWTJGOEN failure' )
   End
 
   objectEntry.name = nameOut
@@ -2704,11 +2709,11 @@ GetNumOfJSONObjectEntries:
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Say 'Unable to determine number of object entries'
     Call SurfaceJSONDiag 'hwtjgnue', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( '** hwtjgnue failure **' )
+    Return FatalError( 'HWTJGNUE failure' )
   End
 
   If VERBOSE Then
-    Say numEntriesOut' entries were found'
+    Say numEntriesOut || ' entries were found'
 
 Return numEntriesOut
 
@@ -2737,7 +2742,7 @@ SurfaceJSONDiag: Procedure Expose DiagArea.
   ToolkitRC = Arg(3)
 
   Say
-  Say '*ERROR* (' || who || ') at time: ' || Time()
+  Say 'Error: (' || who || ') at time: ' || Time()
   Say 'Rexx RC: ' || RexxRC || ', Toolkit ReturnCode: ' || ToolkitRC
 
   If RexxRC == 0 Then Do
@@ -2792,7 +2797,7 @@ Return Insert(source,target,0,indentSize,padChar)
  **********************************************************************/
 FatalError:
  errorMsg = Arg(1)
- Say errorMsg
+ Say "" || errorMsg
 Return -1
 
 /**********************************************************************
@@ -2813,7 +2818,7 @@ Return -1
  **********************************************************************/
 FatalErrorAndCleanup:
   errorMsg = Arg(1)
-  Say errorMsg
+  FatalError(errMsg)
   Call Cleanup
 Return -1
 
@@ -2855,7 +2860,7 @@ Cleanup:
     Say 'HWIHOST("OFF") return code is: ('||hwiHostRC||')'
 
     If hwiHostRC <> 0 Then
-      Exit FatalErrorAndCleanup('** unable to turn off HWIHOST **')
+      Exit FatalErrorAndCleanup('Unable to turn off HWIHOST')
   End
 
 Return 0
@@ -2913,16 +2918,16 @@ SurfaceResponse:
       Call ParseJSONData response.responsebody
 
       If RESULT <> 0 Then Do
-        Say 'failed to parse response'
+        Say 'Failed to parse response'
       End
       Else Do
 
         bcpiiErr=FindJSONValue(0, "bcpii-error", HWTJ_BOOLEAN_TYPE)
 
-        errMsg = '*** SE generated error message:'
+        errMsg = 'SE generated error message:'
 
         If bcpiiErr = 'true' Then
-          errMsg = '*** BCPii generated error message:'
+          errMsg = 'BCPii generated error message:'
 
         Say errMsg
 
@@ -2963,7 +2968,7 @@ Usage:
   Say '   Optional:'
   Say '     -C CPCName,   is the name of the CPC of interest, default'
   Say '                   if not specified is the LOCAL CPC'
-  Say '     -L LPARName,  is the name of the LPARof interest, default'
+  Say '     -L LPARName,  is the name of the LPAR of interest, default'
   Say '                   if not specified is the LOCAL LPAR'
   Say '     -G GroupName, is the name of the custom user group'
   Say '                   to target'
@@ -2971,9 +2976,9 @@ Usage:
   Say '                   specify either ADD or REMOVE which will add '
   Say '                   or remove the target LPAR object id from the '
   Say '                   target user group members'
-  Say '     -V,           turn on addition verbose JSON tracing'
+  Say '     -V,           turn on additional verbose JSON tracing'
   Say '     -I,           indicate running in an isv rexx, default if '
-  Say '                   not  specified is TSO/E REXX'
+  Say '                   not specified is TSO/E REXX'
   Say
   Say '(' || whyString || ')'
   Say
