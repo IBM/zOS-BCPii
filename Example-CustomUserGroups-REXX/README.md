@@ -16,7 +16,7 @@ This REXX sample utilizes the **HWIREST API** to do one of the following:
 ## Invocation
 **Syntax**:
 ```
-USRGRP01 [-C CPCName] [-L LPARName] [-G CustomUserGroup] [-A Action {ADD, REMOVE}] [-I] [-V]
+USRGRP01 [-C CPCName] [-L LPARName] [-G CustomUserGroup] [-A Action {ADD, REMOVE}] [-I] [-V] [-H]
 ```
 
  Optional Input Parameters:<br>
@@ -29,6 +29,7 @@ USRGRP01 [-C CPCName] [-L LPARName] [-G CustomUserGroup] [-A Action {ADD, REMOVE
   - -I            - indicate running in ISV REXX environment, default
                     is TSO/E<br>
   - -V            - turn on additional verbose JSON tracing<br>
+  - -H            - Display sample parameters and how to invoke the sample<br>
 
 **Note**: If no arguments are supplied then the sample will default to listing all of the Custom User Groups on the local CPC.
 

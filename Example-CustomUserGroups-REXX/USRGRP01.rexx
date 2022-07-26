@@ -83,7 +83,7 @@
  * Invocation:
  *
  *  USRGRP01 [-C CPCName] [-L LPARName] [-G CustomUserGroup]
- *           [-A Action {ADD, REMOVE}] [-I] [-V]
+ *           [-A Action {ADD, REMOVE}] [-I] [-V] [-H]
  *
  *  Optional Input Parameters:
  *    CPCName  - The name of the CPC to query, default is local CPC
@@ -95,6 +95,8 @@
  *    -I            - indicate running in ISV REXX environment, default
  *                    is TSO/E
  *    -V            - turn on additional verbose JSON tracing
+ *    -H            - Display sample parameters and how to invoke the
+ *                    sample
  *
  *
  *  List all Custom User Groups:
@@ -354,7 +356,7 @@ Return 0
  **********************************************************************/
 GetArgs:
 
-  MAX_NUM_OF_ARGS = 10
+  MAX_NUM_OF_ARGS = 11
 
   ARG_STR = Arg(1)
 
@@ -433,6 +435,10 @@ GetArgs:
     End
     Else If Translate(userArg) == '-I' Then Do
       ISVREXX = TRUE
+    End
+    Else If Translate(userArg) == '-H' Then Do
+      Call Usage
+      Exit 0
     End
     Else Do
       argErr = 'Unrecognized argument ('||userArg||')'
