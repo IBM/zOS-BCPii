@@ -70,20 +70,22 @@
  *          LPAR then the sample will display the error messages and
  *          exit
  *
- *      6c. If the ADD action argument was specified, the sample will
- *          attempt to add the target LPAR to the target user group. If
- *          the REMOVE action argument was specified, the sample will
- *          attempt to remove the target LPAR from the target user
- *          group. The sample will then fetch and display an updated
- *          list of the user group members if the ADD or REMOVE action
- *          was specified
+ *      6c. If the LIST action argument was specified then the target
+ *          user group will fetch and display the target user group's
+ *          members. If the ADD action argument was specified, the
+ *          sample will attempt to add the target LPAR to the target
+ *          user group. If the REMOVE action argument was specified, the
+ *          sample will attempt to remove the target LPAR from the
+ *          target user group. The sample will then fetch and display
+ *          an updated list of the user group members if
+ *          the ADD or REMOVE action was specified
  *
  *    7.  The sample will cleanup and exit
  *
  * Invocation:
  *
  *  USRGRP01 [-C CPCName] [-L LPARName] [-G CustomUserGroup]
- *           [-A Action {ADD, REMOVE}] [-I] [-V] [-H]
+ *           [-A Action {ADD, REMOVE, LIST}] [-I] [-V] [-H]
  *
  *  Optional Input Parameters:
  *    CPCName  - The name of the CPC to query, default is local CPC
@@ -91,7 +93,7 @@
  *               the local LPAR
  *    UserGroupName - The name of the Custom User Group to target
  *    Action        - The action to take against the Custom User Group
- *                    limited to ADD or REMOVE
+ *                    limited to ADD, REMOVE, or LIST
  *    -I            - indicate running in ISV REXX environment, default
  *                    is TSO/E
  *    -V            - turn on additional verbose JSON tracing
@@ -193,6 +195,7 @@ isMissingTargetGroup = TRUE
 
 addLPARToCustomUserGroup = FALSE
 removeLPARFromCustomUserGroup = FALSE
+listCustomUserGroupMembers = TRUE
 
 parserHandle = ""
 
@@ -292,6 +295,14 @@ Main:
     CPCtargetName,,
     targetUserGroupURI,
   )
+
+  /********************************************************************
+    * By default the sample lists the specified Custom Groups Members
+    *******************************************************************/
+  If listCustomUserGroupMembers == TRUE Then Do
+    Call Cleanup
+    Exit 0
+  End
 
   /********************************************************************
     * Remove the target LPAR from the Custom User Group if specified
@@ -420,9 +431,14 @@ GetArgs:
 
       If optionSpecified == 'ADD' Then Do
         addLPARToCustomUserGroup = TRUE
+        listCustomUserGroupMembers = FALSE
       End
       Else If optionSpecified == 'REMOVE' Then Do
         removeLPARFromCustomUserGroup = TRUE
+        listCustomUserGroupMembers = FALSE
+      End
+      Else If optionSpecified == 'LIST' Then Do
+        listCustomUserGroupMembers = TRUE
       End
       Else Do
         argErr = 'Unrecognized action to take against the target ',
@@ -2824,7 +2840,7 @@ Return -1
  **********************************************************************/
 FatalErrorAndCleanup:
   errorMsg = Arg(1)
-  FatalError(errMsg)
+  Say "" || errorMsg
   Call Cleanup
 Return -1
 
@@ -2969,7 +2985,7 @@ Usage:
   Say
   Say 'Usage:'
   Say 'ex LSTGRPS [-C CPCName] [-L LPARName] [-G GroupName] '
-  Say '           [-A Action {ADD, REMOVE}] [-I] [-V]'
+  Say '           [-A Action {ADD, REMOVE}] [-I] [-V] [-H]'
   Say
   Say '   Optional:'
   Say '     -C CPCName,   is the name of the CPC of interest, default'
@@ -2978,13 +2994,18 @@ Usage:
   Say '                   if not specified is the LOCAL LPAR'
   Say '     -G GroupName, is the name of the custom user group'
   Say '                   to target'
-  Say '     -A Action,    is the action to take against the user group,'
-  Say '                   specify either ADD or REMOVE which will add '
-  Say '                   or remove the target LPAR object id from the '
-  Say '                   target user group members'
+  Say '     -A Action,    is the action to take against the user group.'
+  Say '                   To add the target LPAR to the target user'
+  Say '                   group, specify the ADD action. To remove the'
+  Say '                   target LPAR from the target user group,'
+  Say '                   specify the REMOVE action. To list the'
+  Say '                   members of the target user group, specify the'
+  Say '                   LIST action.'
   Say '     -V,           turn on additional verbose JSON tracing'
   Say '     -I,           indicate running in an isv rexx, default if '
   Say '                   not specified is TSO/E REXX'
+  Say '     -H            Display sample parameters and how to invoke'
+  Say '                   the sample.'
   Say
   Say '(' || whyString || ')'
   Say

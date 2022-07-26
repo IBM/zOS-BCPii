@@ -16,7 +16,7 @@ This REXX sample utilizes the **HWIREST API** to do one of the following:
 ## Invocation
 **Syntax**:
 ```
-USRGRP01 [-C CPCName] [-L LPARName] [-G CustomUserGroup] [-A Action {ADD, REMOVE}] [-I] [-V] [-H]
+USRGRP01 [-C CPCName] [-L LPARName] [-G CustomUserGroup] [-A Action {ADD, REMOVE, LIST}] [-I] [-V] [-H]
 ```
 
  Optional Input Parameters:<br>
@@ -25,7 +25,7 @@ USRGRP01 [-C CPCName] [-L LPARName] [-G CustomUserGroup] [-A Action {ADD, REMOVE
                  the local LPAR<br>
   - UserGroupName - The name of the Custom User Group to target<br>
   - Action        - The action to take against the Custom User Group
-                    limited to ADD or REMOVE<br>
+                    limited to ADD, REMOVE, or LIST<br>
   - -I            - indicate running in ISV REXX environment, default
                     is TSO/E<br>
   - -V            - turn on additional verbose JSON tracing<br>
