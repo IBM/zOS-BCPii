@@ -1057,13 +1057,14 @@ Return methodSuccess
  * Input: TARGET - The target object to retrieve the custom user groups
  *                 on
  *
- * Output: A stem tail variable where the variable's values correspond
- *         to the following:
+ * Output:
+ *      A stem tail variable where the variable's values correspond
+ *      to the following:
  *
- *         customUserGroups.0 = N number of custom user groups
- *         customUserGroups.<Custom_Group_Name1> = <Custom_Group_URI1>
- *         customUserGroups.<Custom_Group_Name2> = <Custom_Group_URI2>
- *         ...
+ *      customUserGroups.0 = N number of custom user groups
+ *      customUserGroups.<Custom Group Idx>.NAME = <Custom_Group_Name1>
+ *      customUserGroups.<Custom Group Idx>.URI = <Custom_Group_URI>
+ *      ...
  *
  * Side-Effects: None
  *
@@ -1141,12 +1142,13 @@ GetCustomUserGroups:
       Return 0
     End
 
-    customUserGroups.customUsrGrpName = customUsrGrpURI
+    customUserGroups.grpIdx.NAME = customUsrGrpName
+    customUserGroups.grpIdx.URI = customUsrGrpURI
 
     Say 'Custom User Group Name: ' ||,
         customUsrGrpName ||,
         ' | URI: ' ||,
-        customUserGroups.customUsrGrpName
+        customUsrGrpURI
   End
 
   customUserGroups.0 = numOfCustUsrGrps
@@ -1197,9 +1199,31 @@ GetTargetCustomUserGroupURI:
   If missingTargetGroup == TRUE Then Do
     Exit 0
   End
-  Else If (,
-    Symbol('customUserGroups.' || targetedUserGroup) <> 'VAR',
-  ) Then Do
+
+  targetedUserGroupURI = ""
+  foundTargetGroup = FALSE
+
+  bgnIdx = 1
+  endIdx = customUserGroups.0
+
+  Do While (bgnIdx <= endIdx)
+
+    If (customUserGroups.bgnIdx.NAME == targetedUserGroup) Then Do
+      targetedUserGroupURI = customUserGroups.bgnIdx.URI
+      foundTargetGroup = TRUE
+      Leave
+    End
+    Else If (customUserGroups.endIdx.NAME == targetedUserGroup) Then Do
+      targetedUserGroupURI = customUserGroups.endIdx.URI
+      foundTargetGroup = TRUE
+      Leave
+    End
+
+    bgnIdx = bgnIdx + 1
+    endIdx = endIdx - 1
+  End
+
+  If (foundTargetGroup == FALSE) Then Do
     Call Usage
     Say
     Exit FatalErrorAndCleanup(,
@@ -1208,7 +1232,7 @@ GetTargetCustomUserGroupURI:
     )
   End
 
-Return customUserGroups.targetedUserGroup
+Return targetedUserGroupURI
 
 /**********************************************************************
  * Function: GetCustomUserGroupMembers
