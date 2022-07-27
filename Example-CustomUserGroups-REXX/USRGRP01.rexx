@@ -638,7 +638,7 @@ GetLocalCPCInfo:
   CPCInfoResponse = GetRequest(reqUri)
 
   If CPCInfoResponse = '' Then Do
-    Say 'Failed to retrieve CPC info **'
+    Say 'Failed to retrieve CPC info '
     Return 0
   End
 
@@ -650,7 +650,7 @@ GetLocalCPCInfo:
   CPCArray = FindJSONValue(0, "cpcs", HWTJ_ARRAY_TYPE)
 
   If WasJSONValueFound(CPCArray) = FALSE Then Do
-    Say 'Failed to retrieve CPCs **'
+    Say 'Failed to retrieve CPCs '
     Return 0
   End
 
@@ -682,7 +682,7 @@ GetLocalCPCInfo:
       Say 'Found local CPC'
 
       If localCPCfound <> FALSE Then Do
-        Say 'Error: Found two local CPCs **'
+        Say 'Error: Found two local CPCs '
         Return 0
       End
 
@@ -1017,7 +1017,7 @@ GetLocalLPARInfo:
       )
 
       If WasJSONValueFound(lparTargetName) = FALSE Then Do
-        Say '**failed to obtain LPAR target name**'
+        Say 'Failed to obtain LPAR target name'
         Return 0
       End
 
@@ -1028,7 +1028,7 @@ GetLocalLPARInfo:
       )
 
       If WasJSONValueFound(LPARname) = FALSE Then Do
-        Say '**failed to obtain LPAR name**'
+        Say 'Failed to obtain LPAR name'
         Return 0
       End
     End
@@ -1083,7 +1083,7 @@ GetCustomUserGroups:
   )
 
   If customUserGrpResponse = '' Then Do
-    Say 'Failed to find Custom User Groups **'
+    Say 'Failed to find Custom User Groups '
     Exit 0
   End
 
@@ -1095,7 +1095,7 @@ GetCustomUserGroups:
   groupsList = FindJSONValue(0, GROUPS_LIST_KEY, HWTJ_ARRAY_TYPE)
 
   If WasJSONValueFound(groupsList) = FALSE Then Do
-    Return FatalError(' ** Failed to retrieve Custom User Groups ** ')
+    Return FatalError('Failed to retrieve Custom User Groups ')
   End
 
   numOfCustUsrGrps = GetJSONArrayDim(groupsList)
@@ -1127,7 +1127,7 @@ GetCustomUserGroups:
     )
 
     If WasJSONValueFound(customUsrGrpName) = FALSE Then Do
-      Say ' ** Failed to find Custom User Group name ** '
+      Say 'Failed to find Custom User Group name '
       Return 0
     End
 
@@ -1138,7 +1138,7 @@ GetCustomUserGroups:
     )
 
     If WasJSONValueFound(customUsrGrpURI) = FALSE Then Do
-      Say ' ** Failed to find Custom User Group URI ** '
+      Say 'Failed to find Custom User Group URI '
       Return 0
     End
 
