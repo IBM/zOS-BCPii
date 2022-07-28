@@ -297,7 +297,7 @@ Main:
   If localCPC Then Do
     If GetLocalCPCInfo() <> TRUE Then
       Exit FatalErrorAndCleanup('Failed to get local CPC info')
-    End
+  End
   Else Do
     If GetCPCInfo() <> TRUE Then
       Exit FatalErrorAndCleanup('Failed to get CPC info')
@@ -309,7 +309,7 @@ Main:
   If localLPAR Then Do
     If GetLocalLPARInfo(CPCuri, CPCtargetName) <> TRUE Then
       Exit FatalErrorAndCleanup('Failed to get local LPAR info')
-    End
+  End
   Else Do
     If GetLPARInfo(CPCuri, CPCtargetName, LPARname) <> TRUE Then
       Exit FatalErrorAndCleanup('Failed to get LPAR info')
