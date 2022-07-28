@@ -220,8 +220,41 @@ Main:
   If GetArgs(argString) <> 0 Then
     Exit -1
 
-  Say 'Starting LSTGRPS for CPC name:' || CPCname ||,
-      ' and Customer User Group name:' || targetUserGroup
+  /********************************************************************
+   * Print the arguments specified by the user for their records
+   ********************************************************************/
+  /*
+   * Add an extra new line here for formatting and displaying when
+   * executing from a submitted JCL job
+   */
+  Say
+  Say '********************** Starting USRGRP01 ***********************'
+  Say
+
+  msgCPCName = CPCname
+  msgLPARName = LPARName
+  msgTargetGroup = targetUserGroup
+
+  If localCPC Then Do
+    msgCPCName = 'Local CPC'
+  End
+
+  If localLPAR Then Do
+    msgLPARName = 'Local LPAR'
+  End
+
+  If isMissingTargetGroup Then Do
+    msgTargetGroup = 'No Custom User Group specified'
+  End
+
+  Say '---------------- Parameter Information ----------------'
+  Say 'The CPC being targeted is: ' || msgCPCName
+  Say 'The LPAR being targeted is: ' || msgLPARName
+  Say 'The Custom User Group being targeted is: ' || msgTargetGroup
+
+  /********************************************************************
+   * Setup sample to be capable of running in an ISVREXX environment
+   ********************************************************************/
 
   If ISVREXX Then Do
     Say 'Running in an ISV REXX environment'
@@ -3008,8 +3041,8 @@ Usage:
   whyString = Arg(1)
   Say
   Say 'Usage:'
-  Say 'ex LSTGRPS [-C CPCName] [-L LPARName] [-G GroupName] '
-  Say '           [-A Action {ADD, REMOVE}] [-I] [-V] [-H]'
+  Say 'ex USRGRP01 [-C CPCName] [-L LPARName] [-G GroupName] '
+  Say '            [-A Action {ADD, REMOVE}] [-I] [-V] [-H]'
   Say
   Say '   Optional:'
   Say '     -C CPCName,   is the name of the CPC of interest, default'
