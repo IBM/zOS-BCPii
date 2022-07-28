@@ -289,18 +289,18 @@ Main:
    ********************************************************************/
   Call InitJSONParser
   If RESULT <> 0 Then
-    Exit FatalErrorAndCleanup( 'Parser init failure' )
+    Exit FatalErrorAndCleanup('Parser init failure')
 
   /********************************************************************
    * Grab the CPC Information
    ********************************************************************/
   If localCPC Then Do
     If GetLocalCPCInfo() <> TRUE Then
-      Exit FatalErrorAndCleanup( 'Failed to get local CPC info' )
+      Exit FatalErrorAndCleanup('Failed to get local CPC info')
     End
   Else Do
     If GetCPCInfo() <> TRUE Then
-      Exit FatalErrorAndCleanup( 'Failed to get CPC info' )
+      Exit FatalErrorAndCleanup('Failed to get CPC info')
   End
 
   /********************************************************************
@@ -308,11 +308,11 @@ Main:
    ********************************************************************/
   If localLPAR Then Do
     If GetLocalLPARInfo(CPCuri, CPCtargetName) <> TRUE Then
-      Exit FatalErrorAndCleanup( 'Failed to get local LPAR info' )
+      Exit FatalErrorAndCleanup('Failed to get local LPAR info')
     End
   Else Do
     If GetLPARInfo(CPCuri, CPCtargetName, LPARname) <> TRUE Then
-      Exit FatalErrorAndCleanup( 'Failed to get LPAR info' )
+      Exit FatalErrorAndCleanup('Failed to get LPAR info')
   End
 
   /********************************************************************
@@ -411,7 +411,7 @@ GetArgs:
   argCount = Words(ARG_STR)
 
   If argCount > MAX_NUM_OF_ARGS Then
-    Return Usage( 'Wrong number of arguments' )
+    Return Usage('Wrong number of arguments')
 
   Do i = 1 to argCount
     userArg = Word(ARG_STR, i)
@@ -561,13 +561,13 @@ InterpretRexxFile:
 
   If ISVREXX Then Do
     "ALLOC F(MYIND) DSN(" || file || ") SHR"
-    Address MVS "EXECIO * DISKR MYIND ( FINIS STEM REXXSRC."
+    Address MVS "EXECIO * DISKR MYIND (FINIS STEM REXXSRC."
     "FREE F(MYIND)"
   End
   Else Do
     Address TSO
     "ALLOC F(MYIND) DSN(" || file || ") SHR REU"
-    "EXECIO * DISKR MYIND ( FINIS STEM REXXSRC."
+    "EXECIO * DISKR MYIND (FINIS STEM REXXSRC."
     "FREE F(MYIND)"
   End
 
@@ -594,15 +594,15 @@ InterpretRexxFile:
      * Try to recognize and ignore comment lines while interpreting all
      * other lines
      ******************************************************************/
-    currLine = GetInterpretableRexxLine( REXXSRC.bgnLineIdx)
+    currLine = GetInterpretableRexxLine(REXXSRC.bgnLineIdx)
 
-    If length( currLine ) > 0 Then Do
+    If length(currLine) > 0 Then Do
       Interpret currLine
     End
 
-    currLine = GetInterpretableRexxLine( REXXSRC.endLineIdx)
+    currLine = GetInterpretableRexxLine(REXXSRC.endLineIdx)
 
-    If length( currLine ) > 0 Then Do
+    If length(currLine) > 0 Then Do
       Interpret currLine
     End
 
@@ -1770,7 +1770,7 @@ GetJSONToolkitConstants:
   RexxRC = RC
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtconst', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( 'HWTCONST (json) failure' )
+    Return FatalError('HWTCONST (json) failure')
   End
 
 Return 0
@@ -1856,7 +1856,7 @@ ReInitParser:
 
   Call InitJSONParser
   If RESULT <> 0 Then
-    Exit FatalErrorAndCleanup( 'JSON parser init failure' )
+    Exit FatalErrorAndCleanup('JSON parser init failure')
 
 Return 0
 
@@ -1925,7 +1925,7 @@ Return 1
  * Input: RexxRC - The current return code of our REXX script
  *        ToolkitRC - The current return code of the Toolkit
  *
- * Output: A boolean indicating if there is a JSON error ( 0 for
+ * Output: A boolean indicating if there is a JSON error (0 for
  *         successful and 1 for a failure)
  *
  * Side-Effects: None
@@ -2074,7 +2074,7 @@ TraverseJsonEntry: Procedure Expose (PROC_GLOBALS)
       /****************************************************************
        * If we've reached this point there is a problem.
        ****************************************************************/
-      Return FatalError( 'Unable to retrieve JSON type' )
+      Return FatalError('Unable to retrieve JSON type')
     End
   End
 
@@ -2102,7 +2102,7 @@ TraverseJsonArray: Procedure Expose (PROC_GLOBALS)
   arrayHandle = Arg(1)
   indentLevel = Arg(2)
 
-  numEntries = GetJSONArrayDim( arrayHandle )
+  numEntries = GetJSONArrayDim(arrayHandle)
   If numEntries == 0 Then Do
     Say 'Traversed an empty array'
     Return 0
@@ -2114,7 +2114,7 @@ TraverseJsonArray: Procedure Expose (PROC_GLOBALS)
    * with that of the  toolkit.
    ********************************************************************/
   Do i = 1 To numEntries
-    entryHandle = GetJSONArrayEntry( arrayHandle, i-1 )
+    entryHandle = GetJSONArrayEntry(arrayHandle, i-1)
     Call TraverseJsonEntry entryHandle, 2+indentLevel
   End
 Return 0
@@ -2261,7 +2261,7 @@ ParseJSONData:
 
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtjpars', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( 'HWTJPARS failure' )
+    Return FatalError('HWTJPARS failure')
   End
 
   If VERBOSE Then
@@ -2428,7 +2428,7 @@ FindJSONValue:
    * Process the search result, according to type.  We should first
    * verify the type of the search result.
    ********************************************************************/
-  resultType = GetJSONType( searchResult )
+  resultType = GetJSONType(searchResult)
 
   If resultType <> expectedType Then Do
     If VERBOSE Then
@@ -2573,7 +2573,7 @@ GetJSONType:
 
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtjgjst', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( 'HWTJGJST failure' )
+    Return FatalError('HWTJGJST failure')
   End
   Else Do
     /******************************************************************
@@ -2641,7 +2641,7 @@ GetJSONArrayDim:
 
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Call SurfaceJSONDiag 'hwtjgnue', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( 'HWTJGNUE failure' )
+    Return FatalError('HWTJGNUE failure')
   End
 
   arrayDim = strip(dimOut,'L',0)
@@ -2746,7 +2746,7 @@ GetJSONObjectEntry:
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Say 'Unable to get object entry(' || whichEntry || ')'
     Call SurfaceJSONDiag 'hwtjgoen', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( 'HWTJGOEN failure' )
+    Return FatalError('HWTJGOEN failure')
   End
 
   objectEntry.name = nameOut
@@ -2792,7 +2792,7 @@ GetNumOfJSONObjectEntries:
   If IsThereAJSONError(RexxRC,ReturnCode) Then Do
     Say 'Unable to determine number of object entries'
     Call SurfaceJSONDiag 'hwtjgnue', RexxRC, ReturnCode, DiagArea.
-    Return FatalError( 'HWTJGNUE failure' )
+    Return FatalError('HWTJGNUE failure')
   End
 
   If VERBOSE Then
