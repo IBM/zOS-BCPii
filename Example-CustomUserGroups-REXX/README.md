@@ -20,9 +20,9 @@ USRGRP01 [-C CPCName] [-L LPARName] [-G CustomUserGroup] [-A Action {ADD, REMOVE
 ```
 
  Optional Input Parameters:<br>
-  - CPCName  - The name of the CPC to query, default is the local CPC<br>
-  - LPARName - The name of the LPAR to query and target, default is
-                 the local LPAR<br>
+  - CPCName  - The name of the CPC to query, the default is the local CPC if not specified or provided<br>
+  - LPARName - The name of the LPAR to query and target, the default is
+                 the local LPAR if not specified or provided<br>
   - UserGroupName - The name of the Custom User Group to target<br>
   - Action        - The action to take against the Custom User Group
                     limited to ADD, REMOVE, or LIST<br>
