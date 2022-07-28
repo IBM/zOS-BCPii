@@ -248,6 +248,7 @@ Main:
   End
 
   Say '---------------- Parameter Information ----------------'
+  Say
   Say 'The CPC being targeted is: ' || msgCPCName
   Say 'The LPAR being targeted is: ' || msgLPARName
   Say 'The Custom User Group being targeted is: ' || msgTargetGroup
@@ -255,6 +256,9 @@ Main:
   /********************************************************************
    * Setup sample to be capable of running in an ISVREXX environment
    ********************************************************************/
+  Say
+  Say '---------------- Beginning Processing ----------------'
+  Say
 
   If ISVREXX Then Do
     Say 'Running in an ISV REXX environment'
