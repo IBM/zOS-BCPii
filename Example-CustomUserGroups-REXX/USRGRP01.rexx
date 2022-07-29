@@ -294,26 +294,14 @@ Main:
   /********************************************************************
    * Grab the CPC Information
    ********************************************************************/
-  If localCPC Then Do
-    If GetLocalCPCInfo() <> TRUE Then
-      Exit FatalErrorAndCleanup('Failed to get local CPC info')
-  End
-  Else Do
-    If GetCPCInfo() <> TRUE Then
-      Exit FatalErrorAndCleanup('Failed to get CPC info')
-  End
+  If GetCPCInfo(localCPC) <> TRUE Then
+    Exit FatalErrorAndCleanup("Failed to get the CPC's info")
 
   /********************************************************************
    * Grab the LPAR Information
    ********************************************************************/
-  If localLPAR Then Do
-    If GetLocalLPARInfo(CPCuri, CPCtargetName) <> TRUE Then
-      Exit FatalErrorAndCleanup('Failed to get local LPAR info')
-  End
-  Else Do
-    If GetLPARInfo(CPCuri, CPCtargetName, LPARname) <> TRUE Then
-      Exit FatalErrorAndCleanup('Failed to get LPAR info')
-  End
+  If GetLPARInfo(localLPAR) <> TRUE Then
+    Exit FatalErrorAndCleanup("Failed to get the LPAR's info")
 
   /********************************************************************
    * Get the Target Custom User Group URI
@@ -642,6 +630,37 @@ Return rexxSourceLine
  **********************************************************************/
 
 /**********************************************************************
+ * Function: GetCPCInfo
+ *
+ * Purpose: A heleper method to call the appropriate get method for
+ *          retrieving a CPC's information
+ *
+ * Input: fetchLocalCPC - A boolean indicating whether the sample should
+ *                        get the local CPC's information or a remote
+ *                        CPC's information
+ *
+ * Output: Returns a boolean indicating whether the function was
+ *         sucessful or not (1 is true, 0 is false)
+ *
+ * Side-Effects: None
+ *
+ **********************************************************************/
+GetCPCInfo:
+
+  fetchLocalCPC = Arg(1)
+
+  methodSuccess = FALSE
+
+  If fetchLocalCPC Then Do
+    methodSuccess = GetLocalCPCInfo()
+  End
+  Else Do
+    methodSuccess = GetRemoteCPCInfo()
+  End
+
+Return methodSuccess
+
+/**********************************************************************
  * Function: GetLocalCPCInfo
  *
  * Purpose: Retrieve the uri and target name associated with the local
@@ -775,7 +794,7 @@ GetLocalCPCInfo:
 Return methodSuccess
 
 /**********************************************************************
- * Function: GetCPCInfo
+ * Function: GetRemoteCPCInfo
  *
  * Purpose: Retrieve the uri and target name associated with CPCname
  *          and prime CPCuri and CPCtargetName variables with the info
@@ -790,7 +809,7 @@ Return methodSuccess
  *  1. Sets the CPCname, CPCuri, and CPCtargetName global variables
  *
  **********************************************************************/
-GetCPCInfo:
+GetRemoteCPCInfo:
   /* assume true */
   methodSuccess = 1
   emptyCPCResponse = '{"cpcs":[]}'
@@ -852,7 +871,38 @@ GetCPCInfo:
 Return methodSuccess
 
 /**********************************************************************
- * Function:  GetLPARInfo
+ * Function: GetLPARInfo
+ *
+ * Purpose: A heleper method to call the appropriate get method for
+ *          retrieving a LPAR's information
+ *
+ * Input: fetchLocalLPAR - A boolean indicating whether the sample
+ *                         should get the local LPAR's information or a
+ *                         remote LPAR's information
+ *
+ * Output: Returns a boolean indicating whether the function was
+ *         sucessful or not (1 is true, 0 is false)
+ *
+ * Side-Effects: None
+ *
+ **********************************************************************/
+GetLPARInfo:
+
+  fetchLocalLPAR = Arg(1)
+
+  methodSuccess = FALSE
+
+  If fetchLocalLPAR Then Do
+    methodSuccess = GetLocalLPARInfo(CPCuri, CPCtargetName)
+  End
+  Else Do
+    methodSuccess = GetRemoteLPARInfo(CPCuri, CPCtargetName, LPARname)
+  End
+
+Return methodSuccess
+
+/**********************************************************************
+ * Function:  GetRemoteLPARInfo
  *
  * Purpose: Retrieve the uri and target name associated with an LPAR
  *          that exists on CPC and prime lparURI and lparTargetName
@@ -872,7 +922,7 @@ Return methodSuccess
  *     appropriate lpar information
  *
  **********************************************************************/
-GetLPARInfo:
+GetRemoteLPARInfo:
 
   TARGET_CPC_URI = Arg(1)
   TARGET_CPC_NAME = Arg(2)
