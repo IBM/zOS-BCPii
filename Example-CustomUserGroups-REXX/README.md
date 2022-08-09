@@ -1,13 +1,15 @@
 ## REXX Custom User Group Sample
 
 This REXX sample utilizes the **HWIREST API** to do one of the following:
-- List the Custom User Groups on the specified CPC
-- List the members of the specified Custom User Group on the specified CPC
-- Attempts to add the specified LPAR as a new member to the specified Custom User Group on the specified CPC
-- Attempts to remove the specified LPAR as a member from the specified Custom User Group on the specified CPC
+- List the Custom User Groups on a CPC
+- List the members of the Custom User Group on a CPC
+- Attempts to add the LPAR as a new member to the Custom User Group on a CPC
+- Attempts to remove the LPAR as a member from the Custom User Group on a CPC
+
+Note: The Custom User Group being displayed and modified are located on the Support Element (SE)
 
 ## System Prep work
-- Store USRGRP01 into a data set of at least fb80 and at most fb255
+- Store USRGRP01 into a data set of at least fb80
 - Ensure your z/OS user ID has at least READ and CONTROL access to the following FACILITY Class Profile
     - HWI.TARGET.netid.nau
 
