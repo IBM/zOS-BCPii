@@ -1171,6 +1171,7 @@ GetCustomUserGroups:
 
   If customUserGrpResponse = '' Then Do
     Say 'Failed to find Custom User Groups '
+    Call Cleanup
     Exit 0
   End
 
