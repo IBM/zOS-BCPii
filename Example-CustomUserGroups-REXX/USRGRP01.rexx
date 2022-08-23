@@ -632,7 +632,7 @@ Return rexxSourceLine
 /**********************************************************************
  * Function: GetCPCInfo
  *
- * Purpose: A heleper method to call the appropriate get method for
+ * Purpose: A helper method to call the appropriate get method for
  *          retrieving a CPC's information
  *
  * Input: fetchLocalCPC - A boolean indicating whether the sample should
@@ -873,7 +873,7 @@ Return methodSuccess
 /**********************************************************************
  * Function: GetLPARInfo
  *
- * Purpose: A heleper method to call the appropriate get method for
+ * Purpose: A helper method to call the appropriate get method for
  *          retrieving a LPAR's information
  *
  * Input: fetchLocalLPAR - A boolean indicating whether the sample
