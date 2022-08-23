@@ -1946,7 +1946,7 @@ Return foundValue
  * Input: RexxRC - The Rexx return code to analyze
  *
  * Output: A boolen indicating whether the JSON was not found or not
- *         (1 if HWTJ_JSRCH_SRCHSTR_NOT_FOUND condition, 0 otherwise.
+ *         (1 if HWTJ_JSRCH_SRCHSTR_NOT_FOUND condition, 0 otherwise).
  *
  * Side-Effects: None
  *
