@@ -1524,10 +1524,7 @@ RemoveGroupMember:
   postRequestResponse = PostRequest(,
     ADD_GROUP_MEMBER_URI,,
     ADD_GROUP_MEMBER_BODY,,
-    TARGET_CPC_NAME,,
-    '',,
-    '',,
-    '',
+    TARGET_CPC_NAME,
   )
 
 Return 0
