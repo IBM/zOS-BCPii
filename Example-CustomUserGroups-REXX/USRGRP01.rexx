@@ -561,8 +561,8 @@ InterpretRexxFile:
 
   If rc <> 0 Then Do
     errMsg = 'RC = (' || rc ||,
-             ') encountered trying to read content from (', || file ||,
-             '), if in ISV environment, ensure you used ',
+             ') encountered trying to read content from (' || file ||,
+             '), if in ISV environment, ensure you used ' || ,
              '-I option'
     Exit FatalErrorAndCleanup(errMsg)
   End
