@@ -1401,6 +1401,7 @@ GetCustomUserGroupMembers:
        * Exit the script since we have no members to display for the
        * target Custom User Group
        */
+      Call Cleanup
       Exit 0
     End
   End
