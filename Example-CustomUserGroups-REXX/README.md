@@ -97,8 +97,8 @@ USRGRP01 has been copied into data set HWI.USER.REXX
  //SYSTSPRT DD SYSOUT=(H,,STD)
  //SYSTSIN  DD * UB
  PROFILE NOPREFIX
- EX 'HWI.USER.REXX(USRGRP01)'  -
- 'CPC1 LPAR1 TESTGRP ADD'
+ EX 'HWI.USER.REXX(USRGRP01)' -
+ '-C CPC1 -L LPAR1 -G TESTGRP -A ADD'
  /*
  ```
  - exec is running in a TSO/E rexx environment
