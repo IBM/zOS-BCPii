@@ -5,11 +5,13 @@ This sample queries Image Activation profiles to list crypto attributes for LPAR
 This sample uses **HWIREST API** to do the following:
 - List CPCs and retrieve the URI and target name associated with the LOCAL CPC or the *CPCname* provided
 - List the LPARs on the designated CPC and query the LPAR status.
-- For each LPAR matching the requested status (default is operating), retrieve the following information:
+- For each LPAR matching the requested status (default is operating), retrieve the following information from the image activation profile:
+(assumption is the image activation profile name matches the LPAR name)
      - crypto-activity-cpu-counter-authorization-control
      - assigned-crypto-domains
      - assigned-cryptos
-- Note the crypto attributes are available on z16 or higher processors only.
+- <b>Note: </b>
+ The crypto attributes are available on z16 or higher processors only.
 
 ## System Prep work
 - Store RXCRYPT1 into a data set
@@ -98,7 +100,8 @@ ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT -C CPC1 -S not-activated
 
  ![Sample crypto result](images/SampleCryptoResult.png)
  - If no query results show up, ensure that
-  1. Your USER ID has the appropriate access level to the FACILITY Class profile associated with that CPC and images, see **System Prep Work** above.    
+  1. Your USER ID has the appropriate access level to the FACILITY Class profile associated with that CPC and imagename, 
+  see **System Prep Work** above.    
   2. Your local LPAR is allowed to use BCPii to access the CPC attributes
      [Setting BCPii firmware security access for each LPAR](https://www.ibm.com/docs/en/zos/2.5.0?topic=configuration-setting-bcpii-firmware-security-access-each-lpar)
   3. You are running on a z16 processor or higher.

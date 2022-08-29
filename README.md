@@ -55,6 +55,10 @@ This sample demonstrates how to use BCPii HWIREST SYSTEM REXX interface to load 
 
 This sample demonstrates how to use BCPii HWIREST in a TSO/E REXX or ISV REXX interface to load an LPAR, including a possible activation of the LPAR before hand.
 
+<br/>[**Example-Energy-REXX**](https://github.com/IBM/zOS-BCPii/tree/master/Example-Energy-REXX)
+
+This sample uses BCPii HWIREST REXX interface to retrieve energy management information for a target CPC. The results are stored in .csv format, in a member in a z/OS data set.
+
 <br/>[**Example-Audit-REXX**](https://github.com/IBM/zOS-BCPii/tree/master/Example-Audit-REXX)
 
 This sample uses BCPii HWIREST REXX interface to audit LPARs on a target CPC. The results are stored in .csv format, in a member in a z/OS data set.
@@ -62,10 +66,6 @@ This sample uses BCPii HWIREST REXX interface to audit LPARs on a target CPC. Th
 <br/>[**Example-Crypto-REXX**](https://github.com/IBM/zOS-BCPii/tree/master/Example-Crypto-REXX)
 
 This sample uses BCPii HWIREST REXX interface to retrieve crypto information from image activation profiles for a target CPC. The results are stored in .csv format, in a member in a z/OS data set. Note the crypto properties are valid on z16 processors or higher.
-
-<br/>[**Example-Energy-REXX**](https://github.com/IBM/zOS-BCPii/tree/master/Example-Energy-REXX)
-
-This sample uses BCPii HWIREST REXX interface to retrieve energy management information for a target CPC. The results are stored in .csv format, in a member in a z/OS data set.
 
 
 <br/><br/><b>Publication References:</b>

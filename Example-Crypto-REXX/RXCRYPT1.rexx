@@ -36,6 +36,8 @@
 /*    Call Get LPAR Properties to retrieve a set of specific           */
 /*         Image Activation Profile attributes for LPARs               */
 /*         in the specified status (default = operating)               */
+/*         Sample assumes the image activation profile name is         */
+/*         the same as the LPAR name                                   */
 /*    Write collected content out to the provided partitioned data set */
 /*                                                                     */
 /* INVOCATION:                                                         */
@@ -212,7 +214,7 @@ do iLpar = 1 to LPARsList.0
     end
   else
     do
-      if QueryLPAR() <> 0 then
+      if QueryCrypto() <> 0 then
         do
           errMsg = '** fatal error encountered for LPAR ('||LPARName||')'
           exit fatalErrorAndCleanup(errMsg)
@@ -550,16 +552,18 @@ if foundJSONValue(LPARArray) = FALSE then
 return 0
 
 /*******************************************************/
-/* Function:  QueryLPAR                                */
+/* Function:  QueryCrypto                              */
 /*                                                     */
-/* Retrieve LPAR attributes identified by              */
+/* Retrieve attributes identified by                   */
 /* LPARAttribute stem variable                         */
 /*                                                     */
 /* Return 0 if successful, otherwise return -1         */
 /*******************************************************/
-QueryLPAR:
+QueryCrypto:
 /* Now use the retrieved CPC uri and LPAR name
    to retrieve crypto information for the LPAR
+   We're assuming the image activation profile name 
+   matches the LPAR name
 
    GET <CPC uri>/image-activation-profiles/<profile name>?properties
 */
@@ -569,24 +573,24 @@ If LPARAttribute.0 < 1 then
     return fatalError('** no LPAR attributes to query **')
   end
 
-LPARQueryUri = CPCuri||'/image-activation-profiles/'
-LPARQueryUri = LPARQueryUri||LPARname
-LPARQueryUri = LPARQueryuri||'?properties='
+CryptoQueryUri = CPCuri||'/image-activation-profiles/'
+CryptoQueryUri = CryptoQueryUri||LPARname
+CryptoQueryUri = CryptoQueryUri||'?properties='
  do i = 1 to LPARAttribute.0
-   LPARQueryUri = LPARQueryUri||LPARAttribute.i
+   CryptoQueryUri = CryptoQueryUri||LPARAttribute.i
 
    /* more properties still to add so need a ',' */
    if i < LPARAttribute.0 then
-     LPARQueryUri = LPARQueryUri||','
+     CryptoQueryUri = CryptoQueryUri||','
  end
- LPARQueryUri = LPARQueryUri||'&cached-acceptable=true'
+ CryptoQueryUri = CryptoQueryUri||'&cached-acceptable=true'
 
 say '========================================================='
 say 'Starting to process content for LPAR '||LPARName
 
-LPARQueryResponse = GetRequest(LPARQueryUri, CPCtargetName)
+CryptoQueryResponse = GetRequest(CryptoQueryUri, CPCtargetName)
 
-if LPARQueryResponse = '' Then
+if CryptoQueryResponse = '' Then
   do
     return fatalError('** Failed to retrieve Crypto info **')
   end
@@ -596,7 +600,7 @@ if LPARQueryResponse = '' Then
 outLC = outLC + 1
 REXXWRT.outLC = ','||LPARName||','||LPARstatus
 
-call JSON_parseJson LPARQueryResponse
+call JSON_parseJson CryptoQueryResponse
 
 do i = 1 to LPARAttribute.0
     if LPARAttribute.i = CRYPTOAUTH then
@@ -2293,7 +2297,7 @@ return  /* end function */
 /*                                                                     */
 /* In the case where the property is a complex property and the value  */
 /* type is an array of objects, set the '.0' suffix to 1.              */
-/* Also you must add explicit support to the QueryLPAR() routine       */
+/* Also you must add explicit support to the QueryCrypto() routine     */
 /* to account for whatever values you will derive and store from the   */
 /* complex property.                                                   */
 /*                                                                     */
