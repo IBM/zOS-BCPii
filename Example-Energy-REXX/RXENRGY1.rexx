@@ -2116,7 +2116,7 @@ else
     "FREE F(MYOUTD)"
   end
 
-RC = return_code                  
+RC = return_code
 
 if RC <> 0 then
   do
@@ -2167,4 +2167,3 @@ else
       end
   end
 return  rc /* end function */
-
