@@ -1,12 +1,13 @@
 ## Example-Crypto-REXX
 
-This sample queries Image Activation profiles to list crypto attributes for LPARs. It stores the results, which are in .csv format, in a z/OS data set member.  You can import the content into Microsoft™ Excel or another application of your choice.
+This sample retrieves crypto information from image activation profiles associated with LPARs located on a specific CPC. It stores the results, which are in .csv format, in a z/OS data set member.  You can import the content into Microsoft™ Excel or another application of your choice.
 
 This sample uses **HWIREST API** to do the following:
-- List CPCs and retrieve the URI and target name associated with the LOCAL CPC or the *CPCname* provided
+- List CPCs and retrieve the URI and target name associated with the
+ LOCAL CPC (default) or the *CPCname* provided
 - List the LPARs on the designated CPC and query the LPAR status.
-- For each LPAR matching the requested status (default is operating), retrieve the following information from the image activation profile:
-(assumption is the image activation profile name matches the LPAR name)
+- For each LPAR matching the requested status (default is operating), access the image activation profile with the same name as the LPAR to rerieve the 
+following information:
      - crypto-activity-cpu-counter-authorization-control
      - assigned-crypto-domains
      - assigned-cryptos
@@ -42,15 +43,17 @@ This sample uses **HWIREST API** to do the following:
         - CPCname, if a specific CPC was specified via the -C option
   - *-C CPCname*
       - **optional**
-      - *CPCname* is the name of the CPC whose crypto info will be retrieved
+      - *CPCname* is the name of the CPC which hosts the LPARs whose corresponding image activation profile crypto info will be retrieved
       - **default if not provided:** LOCAL CPC
   - *-S Status*
       - **optional**
-      - *Status* is the desired LPAR Status of the profiles to query 
+      - *Status* represents the status of the LPAR and is an optional filter for the list of LPARs. The names associated with these LPARs is used as input for which image activation profiles need to be queried.
       - Valid values:          
-        - operating - query profiles for active/operating images  
-        - not-operating - query profiles for active/not operating images                                                   
-        - not-activated - query profiles for not activated images 
+        - operating - query profiles for activation image profiles
+        associated with active/operating LPARs  
+        - not-operating - query profiles for activation image profiles     associated with active/not operating LPARs                                                  
+        - not-activated - query profiles for activation images profiles
+        associated with not-activated LPARs 
       - **default if not provided or if not valid:** operating                                               
   - *-I*
       - **optional**
@@ -67,15 +70,15 @@ This sample uses **HWIREST API** to do the following:
 ```
 ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT'
 ```
- - exec is running in a TSO/E rexx environment and will query the LOCAL CPC
+ - exec is running in a TSO/E rexx environment and will query the crypto information associated with LPARs in operating status on the LOCAL CPC
 ```
 ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT -C CPC1'
 ```
- - exec is running in a TSO/E rexx environment and will query CPC CPC1
+ - exec is running in a TSO/E rexx environment and will query the crypto information associated with LPARS in operating status on CPC CPC1
  ```
 ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT -C CPC1 -S not-activated'
 ```
- - exec is running in a TSO/E rexx environment, will query CPC CPC1 and query info for LPARs which are in not-activated status
+ - exec is running in a TSO/E rexx environment, will query the crupton information associated with LPARs in not-activated status on CPC CPC1
 
 **sample batch invocation via JCL:**
 <br>RXCRYPT1 has been copied into data set HWI.HWIREST.REXX and HWI.RXCRYPTO.OUTPUT
@@ -94,7 +97,7 @@ ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT -C CPC1 -S not-activated
  '-D HWI.RXCRYPTO.OUTPUT -C CPC1'
  /*
  ```
- - exec is running in a TSO/E rexx environment and will query CPC CPC1
+ - exec is running in a TSO/E rexx environment and will query will query the crypto information associated with LPARS in operating status on CPC CPC1
 
 ## Generated Output
 
