@@ -29,13 +29,13 @@
 /* OPERATION:                                                          */
 /*                                                                     */
 /*  CODE FLOW in this sample:                                          */
-/*    Call List CPCs to retrieve uri and target name for the specific  */
-/*         CPC                                                         */
+/*    Call Get CPC info to retrieve uri and target name for the        */
+/*         specific CPC                                                */
 /*    Call List Logical Partitions of CPC to retrieve uri and          */
 /*         target name and status info for LPARs                       */
-/*    Call Get LPAR Properties to retrieve a set of specific           */
-/*         Image Activation Profile attributes for LPARs               */
-/*         in the specified status (default = operating)               */
+/*    Call Query Crypto to retrieve a set of specific Image            */
+/*         Activation Profile attributes for LPARs in the              */
+/*         specified status (default = operating)                      */
 /*         Sample assumes the image activation profile name is         */
 /*         the same as the LPAR name                                   */
 /*    Write collected content out to the provided partitioned data set */
@@ -45,17 +45,27 @@
 /*                                                                     */
 /*     Required input parameters:                                      */
 /*        -D <data set name> is the name of a pre-existing partitioned */
-/*           data set, if the LPAR query is successful, a member       */
-/*           containing the query information in CSV format will be    */
-/*           stored into the data set, the member will either be named */
-/*           LOCAL or the CPC name provided via -C option              */
+/*           data set. If the query is successful, a member containing */
+/*           the query information in CSV format will be stored into   */
+/*           the data set, the member will either be named LOCAL or    */
+/*           the CPC name provided via -C option                       */
 /*     Optional input parameters:                                      */
-/*        -C <CPCname> name of the CPC to query, default is LOCAL CPC  */
-/*        -S <Status> LPAR Status of the profiles to query,            */
-/*           operating - query profiles for active/operating images    */
-/*           not-operating - query profiles for active/not operating   */
-/*                           images                                    */
-/*           not-activated - query profiles for not activated images   */
+/*        -C <CPCname> is the name of the CPC which hosts the LPARs    */
+/*           whose corresponding image activation profile info will    */  
+/*           be retrieved                                              */  
+/*           default is LOCAL                                          */ 
+/*        -S <Status> represents the status of the LPAR and is an      */
+/*           optional filter for the list of LPARs                     */
+/*           The names associated with these LPARs are used as input   */
+/*           for which image activation profiles need to be queried.   */
+/*           Valid values:                                             */
+/*           operating - query profiles for activation image profiles  */
+/*                       associated with active/operating LPARs        */
+/*           not-operating - query profiles for activation image       */
+/*                       profiles associated with active/not operating */
+/*                       LPARS                                         */
+/*           not-activated - query profiles for activation image       */
+/*                       profiles associated with not activated LPARs  */
 /*           Any other value, or no parm specified will default to     */
 /*           operating                                                 */
 /*        -I indicate running out of ISV REXX environment,             */
@@ -70,7 +80,8 @@
 /*        EX 'HWI.HWIREST.REXX(RXCRYPT1))'                             */
 /*            '-D HWI.CRYPTO -S not-activated'                         */
 /*            data set is HWI.CRYPTO, run from TSO REXX,               */
-/*            query crypto attributes for not-activated LPARs          */
+/*            will query crypto information associated with LPARs      */
+/*            in operating status on the LOCAL CPC                     */
 /*            if successful will create HWI.CRYPTO(LOCAL)              */
 /*                                                                     */
 /* DEPENDENCIES:                                                       */
@@ -128,16 +139,12 @@ if VerifyDataSet(TEMP_DATASET) <> 0 then
 /**********************************************/
 /* Ensure the requested LPAR status is valid  */
 /**********************************************/
-if VerifyStatus(ReqstdLPAR_Status) <> 0 then
-  do
-    errMsg = '** Unable to set requested LPAR status **'
-    exit fatalErrorAndCleanup(errMsg)
-  end
+Call VerifyStatus(ReqstdLPAR_Status) 
 
 if localCPC then
   say 'Obtaining LPARs on LOCAL CPC'
 else
-  say 'Starting query of LPARs on CPC:'||CPCname
+  say 'Obtaining LPARs on CPC:'||CPCname
 
 if ISVREXX then
   do
@@ -191,7 +198,7 @@ if getLPARList() <> 0 then
   The CPC has at least one LPAR so prime the list of attributes
   that need to be retrieved for each LPAR
 ***************************************************************/
-call PrepLPARAttributes
+call PrepCryptoAttrs
 call PrepHdrRow
 outLC = 1 /* HdrRow */
 
@@ -279,9 +286,10 @@ return 0
 /*******************************************************/
 /* Function:  GetLocalCPCInfo                          */
 /*                                                     */
-/* Retrieve the uri and target name associated with    */
-/* LOCAL CPC and prime CPCuri and CPCtargetName        */
-/* variables with the info                             */
+/* Retrieve the uri and target name and SE version     */
+/* associated with the LOCAL CPC                       */
+/* Prime CPCuri and CPCtargetName variables            */
+/* Verify SE version is z16 or higher                  */
 /*                                                     */
 /* Return 0 on success, -1 on error                    */
 /*******************************************************/
@@ -317,12 +325,12 @@ if foundJSONValue(CPCArray) = FALSE then
     return fatalError('** failed to retrieve CPCs **')
   end
 
-/**************************************************************/
- /* Determine the number of CPCs represented in the array     */
+ /**************************************************************/
+ /* Determine the number of CPCs represented in the array      */
  /**************************************************************/
  CPCs = JSON_getArrayDim(CPCArray)
  if CPCs <= 0 then
-    return fatalError( '** Unable to retrieve number of array entries **' )
+    return fatalError( '** Unable to retrieve number of CPCs **' )
 
  /********************************************************************/
  /* Traverse the CPCs array to populate CPCsList.                    */
@@ -342,6 +350,13 @@ if foundJSONValue(CPCArray) = FALSE then
             return fatalError('** found two LOCAL CPCs **')
           end
         localCPCfound = TRUE
+
+      CPCversion=JSON_findValue(nextEntryHandle,"se-version",HWTJ_STRING_TYPE)
+        if foundJSONValue(CPCversion) = FALSE then
+          do
+            return fatalError,
+            ('ERROR: found LOCAL CPC but it did not contain an se-version')
+          end
 
         CPCuri=JSON_findValue(nextEntryHandle,"object-uri",HWTJ_STRING_TYPE)
         if foundJSONValue(CPCuri) = FALSE then
@@ -374,13 +389,20 @@ if localCPCfound then
     Say '  name:'||CPCname
     Say '  uri:'||CPCuri
     Say '  target-name:'||CPCtargetName
-    Say
-    return 0
+    Say '  SE version: '||CPCversion
+    Say                                                                 
+    if substr(CPCversion,3,2) < 16 then                                 
+      do                                                                
+        errMsg = '** Crypto attributes supported on z16 or higher only **'
+        return fatalError(errMsg)                                        
+      end                                                               
+      else                                                              
+        return 0
   end
 
 
-/* if we're still here than something went wrong */
-return fatalError('ERROR - ** failed to obtain LOCAL CPC info **')
+/* if  still here then something went wrong */
+return fatalError('ERROR ** failed to obtain LOCAL CPC info **')
 
 /*******************************************************/
 /* Function:  GetCPCInfo                               */
@@ -537,7 +559,7 @@ if foundJSONValue(LPARArray) = FALSE then
     if foundJSONValue(LPARsList.i.name) = FALSE then
       do
         errMsg = 'Failed to obtain name for LPAR entry ('||i||')'
-        return fataError(errMsg)
+        return fatalError(errMsg)
       end
 
     LPARsList.i.status = JSON_findValue(nextEntryHandle,"status",,
@@ -555,7 +577,7 @@ return 0
 /* Function:  QueryCrypto                              */
 /*                                                     */
 /* Retrieve attributes identified by                   */
-/* LPARAttribute stem variable                         */
+/* CryptoAttr stem variable                            */
 /*                                                     */
 /* Return 0 if successful, otherwise return -1         */
 /*******************************************************/
@@ -568,7 +590,7 @@ QueryCrypto:
    GET <CPC uri>/image-activation-profiles/<profile name>?properties
 */
 
-If LPARAttribute.0 < 1 then
+If CryptoAttr.0 < 1 then
   do
     return fatalError('** no LPAR attributes to query **')
   end
@@ -576,11 +598,11 @@ If LPARAttribute.0 < 1 then
 CryptoQueryUri = CPCuri||'/image-activation-profiles/'
 CryptoQueryUri = CryptoQueryUri||LPARname
 CryptoQueryUri = CryptoQueryUri||'?properties='
- do i = 1 to LPARAttribute.0
-   CryptoQueryUri = CryptoQueryUri||LPARAttribute.i
+ do i = 1 to CryptoAttr.0
+   CryptoQueryUri = CryptoQueryUri||CryptoAttr.i
 
    /* more properties still to add so need a ',' */
-   if i < LPARAttribute.0 then
+   if i < CryptoAttr.0 then
      CryptoQueryUri = CryptoQueryUri||','
  end
  CryptoQueryUri = CryptoQueryUri||'&cached-acceptable=true'
@@ -602,29 +624,29 @@ REXXWRT.outLC = ','||LPARName||','||LPARstatus
 
 call JSON_parseJson CryptoQueryResponse
 
-do i = 1 to LPARAttribute.0
-    if LPARAttribute.i = CRYPTOAUTH then
+do i = 1 to CryptoAttr.0
+    if CryptoAttr.i = CRYPTOAUTH then
       do /* simple property */
-        LPARAttributeResponse = JSON_findValue2(0, LPARAttribute.i)
-        say LPARAttribute.i||':('||LPARAttributeResponse||')'
+        CryptoAttrResponse = JSON_findValue2(0, CryptoAttr.i)
+        say CryptoAttr.i||':('||CryptoAttrResponse||')'
         outLC = outLC + 1
-        REXXWRT.outLC = ',,,'||CRYPTOAUTH||','||LPARAttributeResponse
+        REXXWRT.outLC = ',,,'||CRYPTOAUTH||','||CryptoAttrResponse
       end /* simple property */
     else /* complex property with nested content */
       do
-        ArrayResponse = JSON_findValue(0,LPARAttribute.i,HWTJ_ARRAY_TYPE)
-        if LPARAttribute.i = ASSIGNED_DOMAINS_PROP then
+        ArrayResponse = JSON_findValue(0,CryptoAttr.i,HWTJ_ARRAY_TYPE)
+        if CryptoAttr.i = ASSIGNED_DOMAINS_PROP then
           do
             if getassignedDomains(ArrayResponse) <> 0 then
-              return fataError('failed to parse assigned domains')
+              return fatalError('failed to parse assigned domains')
           end
-        else if LPARAttribute.i = ASSIGNED_CRYPTOS_PROP then
+        else if CryptoAttr.i = ASSIGNED_CRYPTOS_PROP then
           do
             if getassignedCryptos(ArrayResponse) <> 0 then
-              return fataError('failed to parse assigned cryptos')
+              return fatalError('failed to parse assigned cryptos')
           end
         else
-          say '** unable to handle this complex property'
+          return fatalError('Requested attribute not recognized')
       end /* complex property with nested content */
 
 end /* i, attribute count */
@@ -2270,7 +2292,7 @@ usage:
 /***********************************************/
 PrepHdrRow:
 
-if LPARAttribute.0 < 1 then
+if CryptoAttr.0 < 1 then
   do
     say 'FATAL error, no attributes to write out'
     return
@@ -2283,17 +2305,17 @@ REXXWRT.1 = MemberName||',LPAR Name,LPAR status,Attributes'
 return  /* end function */
 
 /***********************************************************************/
-/* Function:  PreLPARAttributes()                                      */
+/* Function:  PrepCryptoAttrs()                                        */
 /*                                                                     */
-/* Generate LPARAttribute stem that contains the property names to be  */
+/* Generate CryptoAttr stem that contains the property names to be     */
 /* retrieved for an LPAR.                                              */
 /*                                                                     */
 /* In the case where the property is a simple entity and the value     */
 /* type is either a string, boolean, number set the '.0' suffix to 0.  */
 /* For example, sysplex-name is a simple property that will return a   */
 /* string, so you'd add the following for it:                          */
-/*     LPARAttribute.attrI = 'sysplex-name'                            */
-/*     LPARAttribute.attrI.0 = 0                                       */
+/*     CryptoAttr.attrI = 'sysplex-name'                               */
+/*     CryptoAttr.attrI.0 = 0                                          */
 /*                                                                     */
 /* In the case where the property is a complex property and the value  */
 /* type is an array of objects, set the '.0' suffix to 1.              */
@@ -2302,26 +2324,26 @@ return  /* end function */
 /* complex property.                                                   */
 /*                                                                     */
 /***********************************************************************/
-PrepLPARAttributes:
+PrepCryptoAttrs:
 
-drop LPARAttribute.
+drop CryptoAttr.
 
 attrI = 1
-LPARAttribute.attrI = 'crypto-activity-cpu-counter-authorization-control'
-LPARAttribute.attrI.0 = 0
+CryptoAttr.attrI = 'crypto-activity-cpu-counter-authorization-control'
+CryptoAttr.attrI.0 = 0
 attrI = attrI + 1
-LPARAttribute.attrI = 'assigned-crypto-domains'
-LPARAttribute.attrI.0 = 1
+CryptoAttr.attrI = 'assigned-crypto-domains'
+CryptoAttr.attrI.0 = 1
 attrI = attrI + 1
-LPARAttribute.attrI = 'assigned-cryptos'
-LPARAttribute.attrI.0 = 1
+CryptoAttr.attrI = 'assigned-cryptos'
+CryptoAttr.attrI.0 = 1
 
 /* total number of LPAR attributes to query
    NOTE: this is not the total number of properties in the csv file
          because each complex property may result in one or more
          properties
 */
-LPARAttribute.0 = attrI
+CryptoAttr.0 = attrI
 
 return  /* end function */
 
