@@ -351,7 +351,7 @@ if foundJSONValue(CPCArray) = FALSE then
           end
         localCPCfound = TRUE
 
-      CPCversion=JSON_findValue(nextEntryHandle,"se-version",HWTJ_STRING_TYPE)
+        CPCversion=JSON_findValue(nextEntryHandle,"se-version",HWTJ_STRING_TYPE)
         if foundJSONValue(CPCversion) = FALSE then
           do
             return fatalError,
@@ -380,7 +380,7 @@ if foundJSONValue(CPCArray) = FALSE then
             ('ERROR: found LOCAL CPC but it did not contain a name property')
           end
       end
- end /* endloop thru the JSON LPARs array */
+ end /* endloop thru the JSON CPCs array */
 
 if localCPCfound then
   do
@@ -396,8 +396,8 @@ if localCPCfound then
         errMsg = '** Crypto attributes supported on z16 or higher only **'
         return fatalError(errMsg)                                        
       end                                                               
-      else                                                              
-        return 0
+    else                                                              
+      return 0
   end
 
 
@@ -472,17 +472,18 @@ if methodSuccess then
        errMsg = '** Crypto attributes supported on z16 or higher only **'
        return fatalError(errMsg)                                
       end                                                                
-      else                                                                
-       return 0                                                         
+    else                                                                
+      return 0                                                         
   end
-
-Say
-Say 'Obtained some or none of the CPC Info:'
-Say '  uri:('||CPCuri||')'
-Say '  target-name:('||CPCtargetName||')'
-Say 'full response body:('||CPCInfoResponse||')'
-Say
-return fatalError(' ** failed to obtain CPC info **')
+else do
+    Say
+    Say 'Obtained some or none of the CPC Info:'
+    Say '  uri:('||CPCuri||')'
+    Say '  target-name:('||CPCtargetName||')'
+    Say 'full response body:('||CPCInfoResponse||')'
+    Say
+    return fatalError(' ** failed to obtain CPC info **')
+end
 
 /*******************************************************/
 /* Function:  getLPARList                              */
@@ -694,22 +695,22 @@ getAssignedCryptos:
    outLC = outLC + 1
    REXXWRT.outLC = ',,,'||keyType||' (Number & Activation Type Array)'
    outLC = outLC + 1
- drop CryList.
- CryList.0 = Cryptos
- do j = 1 to Cryptos
-    nextEntryHandle = JSON_getArrayEntry(ArrayResponse,j-1)
-    CryList.j.num=JSON_findValue2(nextEntryHandle,"number")
-    CryList.j.type=JSON_findValue(nextEntryHandle,"activation-type",,
+   drop CryList.
+   CryList.0 = Cryptos
+   do j = 1 to Cryptos
+     nextEntryHandle = JSON_getArrayEntry(ArrayResponse,j-1)
+     CryList.j.num=JSON_findValue2(nextEntryHandle,"number")
+     CryList.j.type=JSON_findValue(nextEntryHandle,"activation-type",,
                         HWTJ_STRING_TYPE)
 
-    say CryList.j.num || ' , ' || Crylist.j.type
+     say CryList.j.num || ' , ' || Crylist.j.type
                           
-    if j=1 then
-      REXXWRT.outLC = ',,,'||CryList.j.num||','||CryList.j.type
-    else
-      REXXWRT.outLC = REXXWRT.outLC||','||CryList.j.num||','||CryList.j.type
+     if j=1 then
+       REXXWRT.outLC = ',,,'||CryList.j.num||','||CryList.j.type
+     else
+       REXXWRT.outLC = REXXWRT.outLC||','||CryList.j.num||','||CryList.j.type
 
- end /* array entries */
+ end /* j  */
  end /* Cryptos  */
 
  return 0 /* end function */
@@ -754,22 +755,22 @@ getAssignedDomains:
    outLC = outLC + 1
    REXXWRT.outLC = ',,,'||keyType||' (Domain Index & Access Mode Array)'
    outLC = outLC + 1
- drop DmnsList.
- DmnsList.0 = Domains
- do k = 1 to Domains
-    nextEntryHandle = JSON_getArrayEntry(ArrayResponse,k-1)
-    DmnsList.k.index=JSON_findValue2(nextEntryHandle,"domain-index")
-    DmnsList.k.mode=JSON_findValue(nextEntryHandle,"access-mode",,
+   drop DmnsList.
+   DmnsList.0 = Domains
+   do k = 1 to Domains
+     nextEntryHandle = JSON_getArrayEntry(ArrayResponse,k-1)
+     DmnsList.k.index=JSON_findValue2(nextEntryHandle,"domain-index")
+     DmnsList.k.mode=JSON_findValue(nextEntryHandle,"access-mode",,
                         HWTJ_STRING_TYPE)
 
-    say DmnsList.k.index || ' , ' || Dmnslist.k.mode
+     say DmnsList.k.index || ' , ' || Dmnslist.k.mode
                           
-    if k=1 then
+     if k=1 then
       REXXWRT.outLC = ',,,'||DmnsList.k.index||','||DmnsList.k.mode
-    else
+     else
       REXXWRT.outLC = REXXWRT.outLC||','||DmnsList.k.index||','||DmnsList.k.mode
 
- end /* array entries */
+ end /* k  */
  end /* domains  */
 
  return 0 /* end function */
@@ -2265,15 +2266,18 @@ usage:
  say
  say 'USAGE: RXCRYPT1 -D outputDataSet [-C CPCname] [-I] [-V]'
  say '    REQUIRED'
- say '         -D outputDataSet, name of an existing partitioned'
- say '               data set, if the LPAR query is successful, a member '
- say '               containing the query information in CSV format will '
- say '               be stored into the data set, the member will either '
- say '               be named LOCAL or the CPC name specified via -C option'
+ say '         -D outputDataSet, name of an existing partitioned data set,'
+ say '               if the query is successful, a member containing the'
+ say '               crypto information in CSV format will be stored into'
+ say '               the data set, the member will either be named'
+ say '               LOCAL or the CPC name specified via -C option'
  say '    OPTIONAL'
- say '         -C CPCname, name of the CPC to query, default if'
- say '               not specified is the LOCAL CPC'
- say '         -S <Status> LPAR Status of the profiles to query,'
+ say '         -C CPCname, the name of the CPC which hosts the LPARs whose'
+ say '               corresponding image activation profile crypto info'
+ say '               will be retrieved, default if not specified is'
+ say '               the LOCAL CPC'
+ say '         -S <Status> represents the status of the LPAR and is'
+ say '               an optional filter for the list of LPARs,'
  say '               default if invalid or not specified is operating'
  say '         -I indicate running in an isv rexx, default if not'
  say '               specified is TSO/E REXX'
@@ -2308,7 +2312,7 @@ return  /* end function */
 /* Function:  PrepCryptoAttrs()                                        */
 /*                                                                     */
 /* Generate CryptoAttr stem that contains the property names to be     */
-/* retrieved for an LPAR.                                              */
+/* retrieved.                                                          */
 /*                                                                     */
 /* In the case where the property is a simple entity and the value     */
 /* type is either a string, boolean, number set the '.0' suffix to 0.  */
@@ -2338,7 +2342,7 @@ attrI = attrI + 1
 CryptoAttr.attrI = 'assigned-cryptos'
 CryptoAttr.attrI.0 = 1
 
-/* total number of LPAR attributes to query
+/* total number of attributes to query
    NOTE: this is not the total number of properties in the csv file
          because each complex property may result in one or more
          properties

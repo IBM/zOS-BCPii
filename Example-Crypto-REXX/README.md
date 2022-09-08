@@ -5,7 +5,7 @@ This sample retrieves crypto information from image activation profiles associat
 This sample uses **HWIREST API** to do the following:
 - List CPCs and retrieve the URI and target name associated with the
  LOCAL CPC (default) or the *CPCname* provided
-- List the LPARs on the designated CPC and query the LPAR status.
+- List the LPARs on the designated CPC
 - For each LPAR matching the requested status (default is operating), access the image activation profile with the same name as the LPAR to rerieve the 
 following information:
      - crypto-activity-cpu-counter-authorization-control
@@ -51,7 +51,8 @@ following information:
       - Valid values:          
         - operating - query profiles for activation image profiles
         associated with active/operating LPARs  
-        - not-operating - query profiles for activation image profiles     associated with active/not operating LPARs                                                  
+        - not-operating - query profiles for activation image profiles
+        associated with with active/not operating LPARs                                                  
         - not-activated - query profiles for activation images profiles
         associated with not-activated LPARs 
       - **default if not provided or if not valid:** operating                                               
@@ -78,7 +79,7 @@ ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT -C CPC1'
  ```
 ex 'HWI.HWIREST.REXX(RXCRYPT1)' '-D HWI.RXCRYPTO.OUTPUT -C CPC1 -S not-activated'
 ```
- - exec is running in a TSO/E rexx environment, will query the crupton information associated with LPARs in not-activated status on CPC CPC1
+ - exec is running in a TSO/E rexx environment, will query the crypto information associated with LPARs in not-activated status on CPC CPC1
 
 **sample batch invocation via JCL:**
 <br>RXCRYPT1 has been copied into data set HWI.HWIREST.REXX and HWI.RXCRYPTO.OUTPUT
