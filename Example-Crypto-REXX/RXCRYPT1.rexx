@@ -710,7 +710,7 @@ getAssignedCryptos:
      else
        REXXWRT.outLC = REXXWRT.outLC||','||CryList.j.num||','||CryList.j.type
 
- end /* j  */
+   end /* j  */
  end /* Cryptos  */
 
  return 0 /* end function */
@@ -770,7 +770,7 @@ getAssignedDomains:
      else
       REXXWRT.outLC = REXXWRT.outLC||','||DmnsList.k.index||','||DmnsList.k.mode
 
- end /* k  */
+   end /* k  */
  end /* domains  */
 
  return 0 /* end function */
