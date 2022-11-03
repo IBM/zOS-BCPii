@@ -336,7 +336,7 @@ targetUserGroup = -1
           If ActionSpecified == 'ADD' Then
             Call AddGroupMember
           Else if ActionSpecified == 'REMOVE' Then
-            Call = RemoveGroupMember
+            Call RemoveGroupMember
         end /* add or remove */ 
     end /* end uri found */
     Else
