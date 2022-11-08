@@ -67,6 +67,10 @@ This sample uses BCPii HWIREST REXX interface to audit LPARs on a target CPC. Th
 
 This sample uses BCPii HWIREST REXX interface to retrieve crypto information from image activation profiles associated with LPARs located on a specific  CPC. The results are stored in .csv format, in a member in a z/OS data set. Note the crypto properties are valid on z16 processors or higher.
 
+<br/>[**Example-CustomUsrGrp-REXX**](https://github.com/IBM/zOS-BCPii/tree/master/Example-CustomUsrGrp-REXX)
+
+This sample uses BCPii HWIREST REXX interface to list custom user groups and group members located on a specific CPC (SE).  It can also be used to add an LPAR to a custom user group or remove an LPAR from a customer user group.
+
 
 <br/><br/><b>Publication References:</b>
 - Syntax of HWIREST and other useful BCPii information: [**IBM z/OS MVS Programming: Callable Services for High-Level Languages**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.5.0/com.ibm.zos.v2r5.ieac100/uhmis.htm)
@@ -75,7 +79,7 @@ This sample uses BCPii HWIREST REXX interface to retrieve crypto information fro
 - Supported REST API operations: [**Hardware Management Console Web Services API, Appendix A, available on Resource Link:**](http://www.ibm.com/servers/resourcelink) <br/> Library -> z15 or higher -> Hardware Management Console Web Services API)
 
 - [**MVS System Management Facilities (SMF): BCPii SMF 106**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.5.0/com.ibm.zos.v2r5.ieag200/rec106.htm)
-- [**MVS System Codes: BCPii System Code ‘042’X**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.5.0/com.ibm.zos.v2r5.ieah700/idg8313.htm)
+- [**MVS System Codes: BCPii System Code '042'X**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.5.0/com.ibm.zos.v2r5.ieah700/idg8313.htm)
 - [**MVS System Messages, Vol 6 (GOS-IEA) HWI mesages**](https://www.ibm.com/docs/en/zos/2.5.0?topic=iea-hwi-messages)
 - [**z/OS MVS Diagnosis: Tools and Service Aids - SYSBCPII component trace**](https://www.ibm.com/docs/en/zos/2.5.0?topic=trace-requesting-sysbcpii)
 - [**zOS Hot Topics: BCPii - A RESTed development**](https://zos-hot-topics.com/2022/rest-enabled-bcpii/)
