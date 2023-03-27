@@ -1,7 +1,7 @@
 /* START OF SPECIFICATIONS ********************************************
 * Beginning of Copyright and License                                  *
 *                                                                     *
-* Copyright 2021 IBM Corp.                                            *
+* Copyright IBM Corp. 2021, 2023                                      *
 *                                                                     *
 * Licensed under the Apache License, Version 2.0 (the "License");     *
 * you may not use this file except in compliance with the License.    *
@@ -127,6 +127,8 @@ bool getNextActivationProfile(char **LPARnextActProfile)
       if (*LPARnextActProfile != NULL)
       {
         printf("LPAR %s is %s\n", nextActProfile, *LPARnextActProfile);
+        free(responseBody);
+        free(queryParm);
         return true;
       }
       else
@@ -176,6 +178,8 @@ bool getLPARStatus(char **LPARstatusValue)
       if (*LPARstatusValue != NULL)
       {
         printf("LPAR %s is %s\n", statusProp, *LPARstatusValue);
+        free(responseBody);
+        free(queryParm);
         return true;
       }
       else
@@ -215,9 +219,6 @@ bool asyncPost(char *uriArg,
 
   REQUEST_PARM_TYPE request;
   RESPONSE_PARM_TYPE response;
-  char *responseBody = (char *)malloc(defaultLen15MB);
-  char *responseDate = (char *)malloc(defaultLen);
-  char *requestId = (char *)malloc(defaultLen);
 
   memset(&request, 0, sizeof(REQUEST_PARM_TYPE));
   memset(&response, 0, sizeof(RESPONSE_PARM_TYPE));
@@ -268,6 +269,10 @@ bool asyncPost(char *uriArg,
   /* now initialize the response parm that will
      be populated with the resulting data
   */
+  char *responseBody = (char *)malloc(defaultLen15MB);
+  char *responseDate = (char *)malloc(defaultLen);
+  char *requestId = (char *)malloc(defaultLen);
+
   memset(responseBody, 0, defaultLen15MB);
   memset(responseDate, 0, defaultLen);
   memset(requestId, 0, defaultLen);
@@ -335,10 +340,6 @@ bool getCPCInfo(char *CPCname)
 
   REQUEST_PARM_TYPE request;
   RESPONSE_PARM_TYPE response;
-  char *uri = (char *)malloc(defaultLen2K);
-  char *responseBody = (char *)malloc(defaultLen15MB);
-  char *responseDate = (char *)malloc(defaultLen);
-  char *requestId = (char *)malloc(defaultLen);
 
   memset(&request, 0, sizeof(REQUEST_PARM_TYPE));
   memset(&response, 0, sizeof(RESPONSE_PARM_TYPE));
@@ -356,12 +357,17 @@ bool getCPCInfo(char *CPCname)
 
   /* Issue a CPC LIST request to obtain the uri
     and target name associated with CPC named T115:
-    GET /api/cpcs?name=<CPCname> 
+    GET /api/cpcs?name=<CPCname>
 
   NOTE: CPC LIST is the only request that does
   not require a target name value because it
   will automatically be sent to the local SE
   */
+  char *uri = (char *)malloc(defaultLen2K);
+  char *responseBody = (char *)malloc(defaultLen15MB);
+  char *responseDate = (char *)malloc(defaultLen);
+  char *requestId = (char *)malloc(defaultLen);
+  
   memset(uri, 0, defaultLen2K);
   strcpy(uri, "/api/cpcs?name=");
   strncat(uri, CPCname, strlen(CPCname));
@@ -465,15 +471,11 @@ bool queryLPAR(char *queryParms,
                int responseBodyLen)
 {
   bool querySuccess = false;
-  bool parseForUri = false;
 
   REQUEST_PARM_TYPE request;
   RESPONSE_PARM_TYPE response;
 
   char *uri = (char *)malloc(defaultLen2K);
-  char *targetName = (char *)malloc(defaultLen);
-  char *responseDate = (char *)malloc(defaultLen);
-  char *requestId = (char *)malloc(defaultLen);
 
   memset(&request, 0, sizeof(REQUEST_PARM_TYPE));
   memset(&response, 0, sizeof(RESPONSE_PARM_TYPE));
@@ -490,9 +492,14 @@ bool queryLPAR(char *queryParms,
     else
     {
       printf("queryLPAR ERROR: queryParms too long\n");
+      free(uri);
       return false;
     }
   }
+
+  char *targetName = (char *)malloc(defaultLen);
+  char *responseDate = (char *)malloc(defaultLen);
+  char *requestId = (char *)malloc(defaultLen);
 
   memset(targetName, 0, defaultLen);
   strcpy(targetName, LPARtargetName);
@@ -548,10 +555,6 @@ bool getLPARInfo(char *LPARname)
   RESPONSE_PARM_TYPE response;
 
   char *uri = (char *)malloc(defaultLen2K);
-  char *targetName = (char *)malloc(defaultLen);
-  char *responseBody = (char *)malloc(defaultLen15MB);
-  char *responseDate = (char *)malloc(defaultLen);
-  char *requestId = (char *)malloc(defaultLen);
 
   memset(&request, 0, sizeof(REQUEST_PARM_TYPE));
   memset(&response, 0, sizeof(RESPONSE_PARM_TYPE));
@@ -568,6 +571,7 @@ bool getLPARInfo(char *LPARname)
   else if ((defaultLen2K - strlen(LPARname)) < 0)
   {
     printf("getLPARInfo ERROR: LPARname too long\n");
+    free(uri);
     return false;
   }
   else
@@ -576,6 +580,11 @@ bool getLPARInfo(char *LPARname)
     strncat(uri, LPARname, strlen(LPARname));
     parseForUri = true;
   }
+  
+  char *targetName = (char *)malloc(defaultLen);
+  char *responseBody = (char *)malloc(defaultLen15MB);
+  char *responseDate = (char *)malloc(defaultLen);
+  char *requestId = (char *)malloc(defaultLen);
 
   memset(targetName, 0, defaultLen);
   strcpy(targetName, CPCtargetName);
@@ -669,12 +678,9 @@ bool getLPARInfo(char *LPARname)
 bool activateLPAR()
 {
   bool actionSuccess = false;
-  bool getStatusSuccess = false;
 
   char *LPARstatusValue = NULL;
   char *LPARnextActProfile = NULL;
-  char *activateUri = (char *)malloc(defaultLen2K);
-  char *requestBody = (char *)malloc(defaultLen64K);
   char *description = "activate LPAR";
 
   /* In this scenario, we only want to attempt an activate
@@ -688,6 +694,9 @@ bool activateLPAR()
       return false;
     }
   }
+
+  char *activateUri = (char *)malloc(defaultLen2K);
+  char *requestBody = (char *)malloc(defaultLen64K);
 
   /*
     To illustrate how a request body is used, re-use the current
@@ -709,8 +718,6 @@ bool activateLPAR()
 
     actionSuccess = asyncPostWorker(activateUri, LPARtargetName,
                                     requestBody, description);
-
-    getStatusSuccess = getLPARStatus(&LPARstatusValue);
   }
 
   free(activateUri);
@@ -846,7 +853,6 @@ bool isJobRunning(char *uriArg, char *targetNameArg, char **jobStatus)
   char *responseBody = (char *)malloc(responseBodyLen);
 
   bool jobRunning = false;
-  char buffer[64];
 
   memset(&request, 0, sizeof(REQUEST_PARM_TYPE));
   memset(&response, 0, sizeof(RESPONSE_PARM_TYPE));
@@ -930,12 +936,12 @@ void printConstTextStr(int len, const char *text, char *description)
            description, len, len);
   }
 
-  if (len > 0 & text[0] != '\0')
+  if (len > 0 && text[0] != '\0')
   {
     memcpy(diagTextString, text, len);
     diagTextString[len] = '\0';
     printf("* >%s:'%s'\n",
-           description, text);
+           description, diagTextString);
   }
 }
 
@@ -964,7 +970,7 @@ void printTextStr(int len,
 	 * Clone the diag text area into a buffer which
 	 * allows C semantics (null-termination)
 	 ***********************************************/
-  if (len > 0 & text[0] != '\0')
+  if (len > 0 && text[0] != '\0')
   {
     memcpy(diagTextString, text, len);
     diagTextString[len] = '\0';

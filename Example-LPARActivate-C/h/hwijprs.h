@@ -1,7 +1,7 @@
 /* START OF SPECIFICATIONS *********************************************
  * Beginning of Copyright and License                                  *
  *                                                                     *
- * Copyright 2021 IBM Corp.                                            *
+ * Copyright IBM Corp. 2021, 2023                                      *
  *                                                                     *
  * Licensed under the Apache License, Version 2.0 (the "License");     *
  * you may not use this file except in compliance with the License.    *
@@ -32,8 +32,8 @@ extern char *find_string(HWTJ_HANDLE_TYPE object, char *search_string);
 extern char *find_number(HWTJ_HANDLE_TYPE object, char *search_string);
 extern void *find_value(HWTJ_HANDLE_TYPE object_to_search, char *name,
                  HWTJ_JTYPE_TYPE expected_value_type);
-extern void *do_get_value(HWTJ_HANDLE_TYPE object,
-                   HWTJ_JTYPE_TYPE type);
+extern void *do_get_value(HWTJ_HANDLE_TYPE *value_handle,
+                   HWTJ_JTYPE_TYPE entry_type);
 extern HWTJ_HANDLE_TYPE find_array(HWTJ_HANDLE_TYPE object,
                             char *search_string);
 extern int getnumberOfEntries(HWTJ_HANDLE_TYPE starthandle);

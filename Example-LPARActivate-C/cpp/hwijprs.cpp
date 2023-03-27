@@ -1,7 +1,7 @@
 /* START OF SPECIFICATIONS *********************************************
  * Beginning of Copyright and License                                  *
  *                                                                     *
- * Copyright 2021 IBM Corp.                                            *
+ * Copyright IBM Corp. 2021, 2023                                      *
  *                                                                     *
  * Licensed under the Apache License, Version 2.0 (the "License");     *
  * you may not use this file except in compliance with the License.    *
@@ -238,7 +238,7 @@ void *find_value(HWTJ_HANDLE_TYPE object_to_search, char *name,
       /* Verify that the returned handle has the expected type. */
       if (entry_type == expected_value_type)
       {
-        value_addr = do_get_value(value_handle, entry_type);
+        value_addr = do_get_value(&value_handle, entry_type);
       }
       else
       {
@@ -434,7 +434,7 @@ int do_get_boolvalue(HWTJ_HANDLE_TYPE value_handle)
  *    HWTJGVAL: Retrieves the value of string or number entry.
  *    HWTJGBOV: Retrieves the value of a boolean entry.
  */
-void *do_get_value(HWTJ_HANDLE_TYPE value_handle,
+void *do_get_value(HWTJ_HANDLE_TYPE *value_handle,
                    HWTJ_JTYPE_TYPE entry_type)
 {
 
@@ -470,7 +470,7 @@ void *do_get_value(HWTJ_HANDLE_TYPE value_handle,
     /* Issue hwtjgval to get the address and length of the string. */
     hwtjgval(&jpreturncode,
              parser_instance,
-             value_handle,       /* handle to a value (input) */
+             *value_handle,      /* handle to a value (input) */
              &string_value_addr, /* value address (output) */
              &value_length,      /* returned value length (output) */
              &diag_area);
@@ -484,7 +484,7 @@ void *do_get_value(HWTJ_HANDLE_TYPE value_handle,
       strncpy((char *)value_addr, (char *)string_value_addr, value_length);
 
       /* Append the null-terminator. */
-      strcat((char *)value_addr, "\0");
+      ((char *)value_addr)[value_length] = '\0';
 
       if (entry_type == HWTJ_NUMBER_TYPE)
       {
@@ -498,7 +498,7 @@ void *do_get_value(HWTJ_HANDLE_TYPE value_handle,
                 */
         hwtjgnuv(&jpreturncode,
                  parser_instance,
-                 value_handle,
+                 *value_handle,
                  &num_value_ptr,    /* pointer to output buffer */
                  sizeof(num_value), /* size of output buffer */
                  &value_desc,       /* indicates 2's comp or BFP */
@@ -538,7 +538,7 @@ void *do_get_value(HWTJ_HANDLE_TYPE value_handle,
   {
 
     /* Store the address of the handle in our return variable. */
-    value_addr = &value_handle;
+    value_addr = value_handle;
   }
 
   return value_addr;
