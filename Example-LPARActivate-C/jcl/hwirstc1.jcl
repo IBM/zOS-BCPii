@@ -2,7 +2,7 @@
 /*JOBPARM SYSAFF=???
 //*******************************************************************
 //*
-//* Copyright 2021 IBM Corp.
+//* Copyright IBM Corp. 2021, 2023
 //*
 //* Licensed under the Apache License, Version 2.0 (the "License");
 //* you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 //*--------------------------------------
 //HWIRSTC1  EXEC PGM=HWIRSTC1,
 //    PARM='POSIX(ON),MSGFILE(SYSOUT) / CPCname LPARname'
-//STEPLIB  DD DSN=hlq.PDSE.LOAD,DISP=SHR
+//STEPLIB  DD DSN=hlq.HWIREST.PDSE.LOAD,DISP=SHR
 //SYSPRINT DD SYSOUT=*
 //CEEDUMP  DD SYSOUT=*
 //SYSUDUMP DD SYSOUT=*

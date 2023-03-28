@@ -3,7 +3,7 @@
 /*JOBPARM SYSAFF=???
 //*******************************************************************
 //*
-//* Copyright 2021 IBM Corp.
+//* Copyright IBM Corp. 2021, 2023
 //*
 //* Licensed under the Apache License, Version 2.0 (the "License");
 //* you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@
 //* COMPILE HWIJPRS, which HWIRSTC1 will include
 //*---------------------------------------------
 //STEP1    EXEC CBCC,
-//         OUTFILE='hlq.PDSE.LOAD,DISP=SHR',
+//         OUTFILE='hlq.HWIREST.PDSE.LOAD,DISP=SHR',
 //         CPARM='LO SO XREF LIST DLL OPTFILE(DD:MYOPT) LOCALE'
 //COMPILE.SYSCPRT DD DSN=&LISTDS,DISP=SHR
 //COMPILE.SYSIN  DD DSN=&INPUTCDS(HWIJPRS),DISP=SHR
@@ -44,7 +44,7 @@
 //* COMPILE and BIND HWIRSTC1
 //*---------------------------------------------
 //STEP2    EXEC CBCCB,
-//         OUTFILE='hlq.PDSE.LOAD,DISP=SHR',
+//         OUTFILE='hlq.HWIREST.PDSE.LOAD,DISP=SHR',
 //         CPARM='LO SO XREF LIST DLL OPTFILE(DD:MYOPT) LOCALE'
 //COMPILE.SYSCPRT DD DSN=&LISTDS,DISP=SHR
 //COMPILE.SYSIN  DD DSN=&INPUTCDS(HWIRSTC1),DISP=SHR
