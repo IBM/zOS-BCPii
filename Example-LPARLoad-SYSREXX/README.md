@@ -1,16 +1,17 @@
 ## Example-LPARLoad-SYSREXX
 
-This sample uses HWIREST API to:
+This sample demonstrates how to use BCPii HWIREST from a System REXX interface to load an LPAR, including a possible activation of the LPAR before hand.
+
+This sample uses HWIREST to:
+
 - List CPCs, filtered by the CPC name (ARG_CPC_NAME), in order to retrieve the URI and target name associated with that CPC
-  - use the ARG_NET_ID to cross check against the target name to verify the correct CPC was returned
 - List the LPARs on that CPC, filtered by the LPAR name (ARG_LPAR_NAME), in order to retrieve the URI and target name associated with that LPAR
-  - use the ARG_NET_ID + ARG_LPAR_NAME to cross check against the target name to verify the correct LPAR was returned
-- inspect the status of the LPAR
+- Inspect the status of the LPAR
   - if the LPAR is already `operating` then there is nothing to do
   - if the LPAR is `not-activated` then
     - ACTIVATE the LPAR
     - POLL the returned job-uri for the result of the ACTIVATE operation
-    - Query the status of the LPAR to ensure its in `not-operating` status before continuing to the LOAD
+    - If Activate is successful, Continue to the LOAD
 - Load the LPAR, passing in the specified:
   - LOADADDR_VALUE, correlates with the JSON attribute `load-address` in the request body
   - LOADPARM_VALUE, correlates with the JSON attribute `load-parameter` in the request body
@@ -21,25 +22,27 @@ This sample uses HWIREST API to:
     - READ access to HWI.TARGET.netid.nau
     - CONTROL HWI.TARGET.netid.nau.imagename
 
-    <p>where netid.nau represents the 3– to 17– character SNA name of the particular CPC
-    and imagename represents the 1– to 8- character LPAR name that will be used as input</p>
+    <p>where netid.nau represents the 3-to-17 character SNA name of the particular CPC and imagename represents the 1-to-8 character LPAR name that will be used as input.  
+    Optionally the * char can be used instead of imagename to represent all of the LPARs available on that CPC.   </p>
 
-1. Store the hwixmrs3.rexx into a data set that is in the search path as defined in an AXRnn parmlib member.
+1. Store hwixmrs3.rexx into a data set that is in the search path as defined in an AXRnn parmlib member.
 
 1. Update the following variables in hwixmrs3.rexx
 ```
-ARG_CPC_NAME - name of the CPC associated with the LPAR to be LOADED
-ARG_NET_ID - NetID of the CPC associated with the LPAR to be LOADED
+ARG_CPC_NAME  - name of the CPC associated with the LPAR to be LOADED
 ARG_LPAR_NAME - name of the LPAR to be loaded
 ARG_LOAD_ADDR - value for the load address
 ARG_LOAD_PARM - value for the load parameter
+
+Optionally update:
+POLL_INTERVAL - seconds between poll attempts (default 5 seconds)  
+POLL_TIME_LIMIT - abandon polling if no response (default 10 minutes)          
 ```
 
 ## Invocation
-<b>NOTE:</b> The LOAD and ACTIVATE operation are only permitted from a SYSTEM REXX, C, or ASM environment.
-The following sample invocation takes advantage of HWIREXX to drive the exec in a SYSTEM REXX environment.
+<b>NOTE:</b>The following sample invocation takes advantage of HWIREXX to drive the exec in a SYSTEM REXX environment.
  
-[HWIREXX Documentation](https://www.ibm.com/docs/en/zos/2.4.0?topic=environment-using-hwirexx-interface)
+[HWIREXX Documentation](https://www.ibm.com/docs/en/zos/2.5.0?topic=environment-using-hwirexx-interface)
 
 **sample JCL invocation using HWIREXX:**
 
@@ -76,76 +79,108 @@ The following sample invocation takes advantage of HWIREXX to drive the exec in 
 **sample success output:**
 ```
  HWIXMRS3 starting.
+ CPC NAME = CPC1
+ LPAR NAME = LP1
+ LOAD Address = 1234
+ LOAD Parm = lparm1
+
+ Obtaining CPC URI and TargetName
  REQUEST ----->
- >GET /api/cpcs?name=T256
- Cpc TargetName: IBM390PS.T256
- Cpc Uri: /api/cpcs/fff-88888
+ >GET /api/cpcs?name=CPC1
+ Cpc TargetName: IBM390PS.CPC1
+ Cpc Uri: /api/cpcs/fff-abcd-9999
+
+ Obtaining LPAR URI, TargetName and Status
  REQUEST ----->
- >GET /api/cpcs/fff-88888/logical-partitions?name=TA5
-   >target name:IBM390PS.T256
- Lpar TargetName: IBM390PS.T256.TA5
+ >GET /api/cpcs/fff-abcd-9999/logical-partitions?name=LP1
+   >target name:IBM390PS.CPC1
+ Lpar TargetName: IBM390PS.CPC1.LP1
  Lpar Uri: /api/logical-partitions/111-eeee-bbbb
  Lpar Status: not-activated
+
  Invoke activate with uri: /api/logical-partitions/111-eeee-bbbb/operations/activate
  REQUEST ----->
  >POST /api/logical-partitions/111-eeee-bbbb/operations/activate
-   >target name:IBM390PS.T256.TA5
+   >target name:IBM390PS.CPC1.LP1
    >request body:{}
- JobUri: /api/jobs/777-eeee-21111
+ JobUri: /api/jobs/777-eeee-9999
+
  Polling Job Status
  REQUEST ----->
- >GET /api/jobs/777-eeee-21111
-   >target name:IBM390PS.T256.TA5
+ >GET /api/jobs/777-eeee-9999
+   >target name:IBM390PS.CPC1.LP1
+ JobStatus: running
+ Wait 5 seconds...         
+
+ Polling Job Status
  REQUEST ----->
- >GET /api/jobs/777-eeee-21111
-   >target name:IBM390PS.T256.TA5
+ >GET /api/jobs/777-eeee-9999
+   >target name:IBM390PS.CPC1.LP1
+ JobStatus: complete   
  JobStatusCode: 204
- JobReasonCode: 0
- *SUCCESS* Job completed successfully
- Job Result = 0
- REQUEST ----->
- >GET /api/logical-partitions/111-eeee-bbbb
-   >target name:IBM390PS.T256.TA5
- Lpar Status: not-operating
+ Job completed successfully
+ Activate elapsed time(sec): 6.512851
+
  Invoke load with uri: /api/logical-partitions/111-eeee-bbbb/operations/load
+ Request Body: {"clear-indicator":false, "store-status-indicator":true, "load-address":"1234", "load-parameter":"lparm1" }                            
  REQUEST ----->
  >POST /api/logical-partitions/111-eeee-bbbb/operations/load
-   >target name:IBM390PS.T256.TA5
-   >request body:{"clear-indicator":false, "store-status-indicator":true, "load-address":"0A503", "load-parameter":"A5C04TM" }
+   >target name:IBM390PS.CPC1.LP1
+   >request body:{"clear-indicator":false, "store-status-indicator":true, "load-address":"1234", "load-parameter":"lparm1" }
  JobUri: /api/jobs/fff-ccc-ddd
+
  Polling Job Status
   REQUEST ----->
  >GET /api/jobs/fff-ccc-ddd
-   >target name:IBM390PS.T256.TA5
+   >target name:IBM390PS.CPC1.LP1
+ JobStatus: running       
+ Wait 5 seconds...         
+
+ Polling Job Status
  REQUEST ----->
  >GET /api/jobs/fff-ccc-ddd
-   >target name:IBM390PS.T256.TA5
+   >target name:IBM390PS.CPC1.LP1
+ JobStatus: running      
+ Wait 5 seconds...    
+
+ Polling Job Status
  REQUEST ----->
  >GET /api/jobs/fff-ccc-ddd
-   >target name:IBM390PS.T256.TA5
- JobStatusCode: 204
- JobReasonCode: 0
- *SUCCESS* Job completed successfully
- Job Result = 0
+   >target name:IBM390PS.CPC1.LP1
+ JobStatus: complete  
+ JobStatusCode: 204                 
+ Job completed successfully         
+ Load elapsed time(sec): 13.438364
+ 
  HWIXMRS3 ending with completion code:0
 ```
 **sample failure output:**
 ```
 HWIXMRS3 starting.
+CPC NAME = CPC1 
+LPAR NAME = LP1
+LOAD Address = 1234
+LOAD Parm = lparm1
+
+Obtaining CPC URI and TargetName
 REQUEST ----->
->GET /api/cpcs?name=T256
-Cpc TargetName: IBM390PS.T256
+>GET /api/cpcs?name=CPC1
+Cpc TargetName: IBM390PS.CPC1
 Cpc Uri: /api/cpcs/bbb-aaa-333
+
+Obtaining LPAR URI, TargetName and Status
 REQUEST ----->
->GET /api/cpcs/bbb-aaa-333/logical-partitions?name=TA5
-  >target name:IBM390PS.T256
-Lpar TargetName: IBM390PS.T256.TA5
+>GET /api/cpcs/bbb-aaa-333/logical-partitions?name=LP1
+  >target name:IBM390PS.CPC1
+Lpar TargetName: IBM390PS.CPC1.LP1
 Lpar Uri: /api/logical-partitions/4444-rrrr-4444
 Lpar Status: operating
+
 ** Unexpected Lpar Status operating **
-HWIXMRS3 ending with completion code:1006
+
+HWIXMRS3 ending with completion code:1015
 ```
-## HWXMRS3 RC
+## HWIXMRS3 RC
 | Return Code | Description |
 | ----------- | ----------- |
 | 0      | Success |
@@ -158,8 +193,9 @@ HWIXMRS3 ending with completion code:1006
 | 1007   | LOAD request failed |
 | 1008   | POLLing job-uri failed |
 | 1009   | Failed to obtain JOB STATUS |
-| 10010  | Query of JOB URI did not complete successfully  |
-| 10011  | JSON Parser failed |
-| 10012  | LPAR not activated |
-| 10013  | ACTIVATE failed |
-| 10014  | Query of LPAR status failed |
+| 1010  | Query of JOB URI did not complete successfully  |
+| 1011  | JSON Parser failed |
+| 1012  | LPAR not activated |
+| 1013  | ACTIVATE failed |
+| 1014  | Query of LPAR status failed |
+| 1015  | Unexpected LPAR status      |
