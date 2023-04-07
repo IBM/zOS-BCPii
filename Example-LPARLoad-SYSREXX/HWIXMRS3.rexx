@@ -2,7 +2,7 @@
  /* START OF SPECIFICATIONS *******************************************/
  /* Beginning of Copyright and License                                */
  /*                                                                   */
- /* Copyright 2021 IBM Corp.                                          */
+ /* Copyright IBM Corp. 2021, 2023                                    */
  /*                                                                   */
  /* Licensed under the Apache License, Version 2.0 (the "License");   */
  /* you may not use this file except in compliance with the License.  */
@@ -22,7 +22,7 @@
  /*    MODULE NAME: HWIXMRS3                                          */
  /*                                                                   */
  /*    DESCRIPTIVE NAME: Sample REXX code which invokes a command     */
- /*                      via the HWIREST api.                         */
+ /*      using the HWIREST service to issue REST API operations.      */
  /*                                                                   */
  /*    FUNCTION:                                                      */
  /*    To be run in a SYSTEM REXX environment, this exec issues an    */
@@ -45,13 +45,15 @@
  /*    attribute values, as needed.  Failures detected at any of      */
  /*    these intermediary processing points abort the exec.           */
  /*                                                                   */
- /*    REQUIRED UPDATE prior to execution:                            */
+ /*    REQUIRED UPDATES prior to execution:                           */
  /*       ARG_CPC_NAME - CPC associated with the LPAR to load         */
- /*       ARG_NET_ID - NetID of the LOAD LPAR CPC                     */
  /*       ARG_LPAR_NAME - LPAR to be loaded                           */
  /*       ARG_LOAD_ADDR - value for the load address                  */
  /*       ARG_LOAD_PARM - value for the load parameter                */
- /*                                                                   */
+ /*    OPTIONAL UPDATES:                                              */
+ /*       POLL_INTERVAL - seconds between poll attempts (default 5)   */
+ /*       POLL_TIME_LIMIT - abandon polling if no response            */
+ /*                                   (default 10 minutes)            */
  /*    RETURNS:                                                       */
  /*    This exec exits with a completion code of 0 if the LPAR LOAD   */
  /*    was successful. Otherwise, the exec exits with a nonzero       */
@@ -60,21 +62,111 @@
  /*    DEPENDENCIES:                                                  */
  /*     1. This sample is only supported in System REXX environments  */
  /*        where TSO=YES.                                             */
+ /*     2. User running the script requires sufficient                */
+ /*        RACF access to facility classes:                           */
+ /*          READ access to HWI.TARGET.netid.nau                      */
+ /*          CONTROL access to HWI.TARGET.netid.nau.imagename         */
+ /*        Where netid.nau represents the 3-to-17 character SNA       */
+ /*        name of the particular CPC, and imagename represents the   */
+ /*        1-to-8 character LPAR name.  Optionally the * char can be  */
+ /*        used instead of imagename to represent all of the LPARs    */
+ /*        available on that CPC.                                     */
+ /*     3. The activate action assumes an activation profile name     */
+ /*        which matches the LPAR name.                               */
  /*                                                                   */
  /*    REFERENCE:                                                     */
  /*        See the z/OS MVS Programming: Callable Services for        */
  /*        High-Level Languages publication for more information      */
- /*        regarding the usage of BCPii's HWIREST api.                */
+ /*        regarding the usage of the BCPii HWIREST service.          */
  /*                                                                   */
  /*********************************************************************/
 
  /****** UPDATE REQUIRED START -------> */
- ARG_CPC_NAME = ''
- ARG_NET_ID = ''
- ARG_LPAR_NAME = ''
- ARG_LOAD_ADDR = ''
- ARG_LOAD_PARM = ''
- /* <--------- UPDATE REQUIRED END ******/
+ ARG_CPC_NAME = ' '
+ ARG_LPAR_NAME = ' '
+ ARG_LOAD_ADDR = ' '
+ ARG_LOAD_PARM = ' '
+ /****** UPDATE OPTIONAL START -------> */
+ POLL_INTERVAL = 5                    /* 5 second interval */
+ POLL_TIME_LIMIT = 10*60              /* abandon after 10 minutes */
+ /****** UPDATE ARGS END -------------> */
+
+ Call DefineConstants
+
+ /***********************************************/
+ /* MAIN                                        */
+ /***********************************************/
+ call TraceMessage THIS_EXEC||' starting.'
+
+ ExecStatus = VerifyRequiredArgs()
+
+ If ExecStatus = NO_ERROR Then
+   ExecStatus = JSON_getToolkitConstants()
+
+ If ExecStatus = NO_ERROR Then
+   ExecStatus = JSON_initParser()
+
+ If ExecStatus = NO_ERROR Then
+    ExecStatus = GetCpcUri( ARG_CPC_NAME)
+
+ /* GetLparUri will return:
+    NO_ERROR if LPAR is already activated and can be LOADED
+    ERROR_NEED_ACTIVATE if an ACTIVATE should be done prior to LOAD
+    anything else indicates unexpected error occurred
+ */
+ If ExecStatus = NO_ERROR Then
+    ExecStatus = GetLparUri( ARG_LPAR_NAME )
+
+ /* Attempt to Activate the LPAR and Poll the JOB uri
+    for a confirmation of the activate
+ */
+ If ExecStatus = ERROR_NEED_ACTIVATE Then
+   Do
+     /* start elapsed time clock */
+     Estarttime = TIME('E')
+     ExecStatus = IssueLparActivateCommand( LparUri )
+     If ExecStatus = NO_ERROR Then
+       ExecStatus = PollJobStatus( CommandJobUri,,
+                                POLL_INTERVAL,,
+                                POLL_TIME_LIMIT )
+
+     /* get elapsed time for activate */
+     Eendtime = TIME('R')
+     call TraceMessage 'Activate elapsed time(sec): '||Eendtime
+   End
+
+ /* Attempt to LOAD the LPAR and POLL the JOB uri
+    for a confirmation of the load
+ */
+ If ExecStatus = NO_ERROR Then
+   Do
+     /* reset elapsed time clock */
+     Estarttime = TIME('E')
+
+     ExecStatus = IssueLparLoadCommand( LparUri )
+     If ExecStatus = NO_ERROR Then
+       ExecStatus = PollJobStatus( CommandJobUri,,
+                                POLL_INTERVAL,,
+                                POLL_TIME_LIMIT )
+     /* get elapsed time for load */
+     Eendtime = TIME('R')
+     call TraceMessage 'Load elapsed time(sec): '||Eendtime
+   End
+
+ /* Cleanup */
+ If isParserInit Then
+   call JSON_termParser
+
+ call TraceMessage '  '
+ call TraceMessage THIS_EXEC||' ending with completion code:'||ExecStatus
+
+ Exit ExecStatus
+
+
+ /*******************************************************/
+ /* Function:  DefineConstants()                        */
+ /*******************************************************/
+DefineConstants:
 
  RUN_ENV = 'AXREXX'
 
@@ -98,7 +190,7 @@
  /*******************************************************/
  /* Names of Json Attributes for which we search in the */
  /* Response Bodies returned by HWIREST.  See the WSAPI */
- /* api documentation for name definitions.             */
+ /* documentation for name definitions.                 */
  /*******************************************************/
  JSON_ATTR_CPCS = 'cpcs'
  JSON_ATTR_JOBREASONCODE = 'job-reason-code'
@@ -119,9 +211,11 @@
  LPAR_STATUS_NOT_ACTIVATED = 'not-activated'
  LPAR_STATUS_NOT_OPERATING = 'not-operating'
  LPAR_STATUS_OPERATING = 'operating'
+ LPAR_STATUS_EXCEPTIONS = 'exceptions'
+ LPAR_STATUS_ACCEPTABLE = 'acceptable'
 
- /******************************************************/
- /* Possible status values for the asynch phase of the  */
+ /*******************************************************/
+ /* Possible status values for the async phase of the   */
  /* Lpar load command which we issue.  See the WSAPI    */
  /* documentation for more value definitions.           */
  /*******************************************************/
@@ -133,6 +227,8 @@
  /* HWIREST request globals */
  HwirestRequestStatus = ''
  ExpectedHttpStatus = ''
+ HTTP_STATUS_OK = 200
+ HTTP_STATUS_ACCEPTED = 202
  HWI_REST_POST   = 1
  HWI_REST_GET    = 2
  HWI_REST_PUT    = 3
@@ -144,15 +240,9 @@
  Verbose = '0'                    /* change for additional trace */
 
  /* Misc Constants */
- THIS_EXEC_NAME = 'HWIXMRS3'
+ THIS_EXEC = 'HWIXMRS3'
  HWIREST_MAXIMAL_TIMEOUT = 0    /* indicates use default 60 minutes */
  isParserInit = '0'
-
- HTTP_STATUS_OK = 200
- HTTP_STATUS_ACCEPTED = 202
-
- POLL_INTERVAL = 5                 /* 5 second interval */
- POLL_TIME_LIMIT = 10*60           /* abandon after 10 minutes */
 
  /***********************************************/
  /* Constants for ExecStatus, to help identify  */
@@ -174,69 +264,9 @@
  ERROR_NEED_ACTIVATE = ERROR_BASE + 12
  ERROR_POST_ACTIVATE_COMMAND = ERROR_BASE + 13
  ERROR_GET_LPAR_STATUS = ERROR_BASE + 14
+ ERROR_UNEXP_LPAR_STATUS = ERROR_BASE + 15
 
- /***********************************************/
- /* MAIN                                        */
- /***********************************************/
- call TraceMessage THIS_EXEC_NAME||' starting.'
-
- ExecStatus = VerifyRequiredArgs()
-
- If ExecStatus = NO_ERROR Then
-   ExecStatus = JSON_getToolkitConstants()
-
- If ExecStatus = NO_ERROR Then
-   ExecStatus = JSON_initParser()
-
-  If ExecStatus = NO_ERROR Then
-    isParserInit = '1'
-
- If ExecStatus = NO_ERROR Then
-    ExecStatus = GetCpcUri( ARG_CPC_NAME,,
-                            ARG_NET_ID )
-
- /* Will return:
-    NO_ERROR if LPAR is already activated and can be LOADED
-    ERROR_NEED_ACTIVATE if and ACTIVATE should be done prior to LOAD
-    anything else to indicate unexpected error occurred
- */
- If ExecStatus = NO_ERROR Then
-    ExecStatus = GetLparUri( ARG_LPAR_NAME )
-
- /* ACTIVATE and POLL for the result */
- If ExecStatus = ERROR_NEED_ACTIVATE Then
-   Do
-     ExecStatus = IssueLparActivateCommand( LparUri )
-     If ExecStatus = NO_ERROR Then
-       ExecStatus = PollJobStatus( CommandJobUri,,
-                                POLL_INTERVAL,,
-                                POLL_TIME_LIMIT )
-
-     If ExecStatus = NO_ERROR Then
-       ExecStatus = GetExecResult()
-
-     If ExecStatus = NO_ERROR Then
-       ExecStatus = VerifyNoOptLparStatus( LparUri )
-   End
-
- /* LOAD and POLL for the result */
- If ExecStatus = NO_ERROR Then
-   Do
-     ExecStatus = IssueLparLoadCommand( LparUri )
-     If ExecStatus = NO_ERROR Then
-       ExecStatus = PollJobStatus( CommandJobUri,,
-                                POLL_INTERVAL,,
-                                POLL_TIME_LIMIT )
-     If ExecStatus = NO_ERROR Then
-       ExecStatus = GetExecResult()
-   End
-
- If isParserInit Then
-   call JSON_termParser
-
- call TraceMessage THIS_EXEC_NAME||' ending with completion code:'||ExecStatus
-
- Exit ExecStatus
+ return  /* end function */
 
  /*******************************************************/
  /* Function:  JSON_getToolkitConstants                 */
@@ -248,7 +278,7 @@
  /*******************************************************/
 JSON_getToolkitConstants:
 
- call TraceVerbose 'Setting hwtcalls on'
+ call TraceJSONVerbose 'Setting hwtcalls on'
 
  /***********************************************/
  /* Ensure that the toolkit host command is     */
@@ -258,7 +288,7 @@ JSON_getToolkitConstants:
  /***********************************************/
  call hwtcalls "on"
 
- call TraceVerbose 'Including HWT Constants...'
+ call TraceJSONVerbose 'Including HWT Constants...'
 
  /************************************************/
  /* Call the HWTCONST toolkit api.  This should  */
@@ -294,7 +324,7 @@ JSON_getToolkitConstants:
  /*********************************************************************/
 JSON_initParser:
 
- call TraceVerbose 'Initializing Json Parser'
+ call TraceJSONVerbose 'Initializing Json Parser'
 
  /***********************************/
  /* Call the HWTJINIT toolkit api.  */
@@ -316,8 +346,9 @@ JSON_initParser:
  /* Set the all-important global */
  /********************************/
  ParserHandle = handleOut
+ isParserInit = '1'
 
- call TraceVerbose 'Json Parser init (hwtjinit) succeeded'
+ call TraceJSONVerbose 'Json Parser init (hwtjinit) succeeded'
 
  return NO_ERROR  /* end function */
 
@@ -334,9 +365,10 @@ JSON_initParser:
  /*******************************************************************/
 GetCpcUri:
 
+ call TraceMessage ' '
+ call TraceMessage 'Obtaining CPC URI and TargetName'
+
  argName = UpperCase(STRIP(arg(1)))
- argNetid = UpperCase(STRIP(arg(2)))
- cpcNetaddr = argNetid||'.'||argName
 
  argUri = '/api/cpcs?name='||argName
  ExpectedHttpStatus = HTTP_STATUS_OK
@@ -361,23 +393,25 @@ GetCpcUri:
    return fatalError( ERROR_GET_CPC_INFO,,
                                 '** Array Handle not found **' )
 
- /*********************************************************/
- /* Find an array entry whose target name matches (case   */
- /* insensitively) our netaddr.  If found, remember both  */
- /* the Cpc Target Name and Object Uri, needed to qualify */
- /* subsequent requests we will be making.  Note that the */
- /* array indexing is 0-based.                            */
- /*********************************************************/
+ /*************************************************/
+ /* Find the Cpc Target Name and Object Uri,      */
+ /* needed to qualify subsequent requests.        */
+ /* Note that the array indexing is 0-based.      */
+ /* Because we request a specifc CPC by name,     */
+ /* there should be only 1 entry                  */
+ /*************************************************/
  numEntries = JSON_getArrayDim( ArrayHandle )
  If numEntries = '' Then
    return fatalError( ERROR_GET_CPC_INFO,,
                                 '** Unexpected Array dim error  **' )
  If numEntries <= 0 Then
    return fatalError( ERROR_GET_CPC_INFO,,
-                                '** Empty Array  **' )
+                                '** CPC Not Found  **' )
+ If numEntries > 1 Then
+   return fatalError( ERROR_GET_CPC_INFO,,
+                     '** Unexpected Array dim error  **' )
 
- Do i = 0 To numEntries - 1
-   entryHandle = JSON_getArrayEntry( ArrayHandle, i )
+   entryHandle = JSON_getArrayEntry( ArrayHandle, 0 )
    If entryHandle = '' Then
      return fatalError( ERROR_GET_CPC_INFO,,
                               '** Unexpected Entry handle error  **' )
@@ -386,26 +420,18 @@ GetCpcUri:
                                   HWTJ_STRING_TYPE )
    If CpcTargetName = '' Then
     return fatalError( ERROR_GET_CPC_INFO,,
-                              '** Unexpected Targetname error  **' )
-   call TraceVerbose 'Checking Cpc with target name: '||CpcTargetName
-   If UpperCase(CpcTargetName) = cpcNetaddr Then
-     Do
-       CpcUri = JSON_findValue( entryHandle,,
-                                JSON_ATTR_OBJECTURI,,
-                                HWTJ_STRING_TYPE )
-       If CpcUri = '' Then
-         return fatalError( ERROR_GET_CPC_INFO,,
-                         '** Failed to extract CPC URI  **' )
-       Leave  /* exit loop on match */
-     End /* endif target name matches */
- End  /* endloop thru Cpcs Array */
+                              '** CPC Targetname not found  **' )
 
- If CpcUri = '' Then
-   return fatalError( ERROR_GET_CPC_INFO,,
-                                '** Target CPC Not Found  **' )
 
- call TraceMessage 'Cpc TargetName: '||CpcTargetName
- call TraceMessage 'Cpc Uri: '||CpcUri
+   CpcUri = JSON_findValue( entryHandle,,
+                            JSON_ATTR_OBJECTURI,,
+                            HWTJ_STRING_TYPE )
+   If CpcUri = '' Then
+     return fatalError( ERROR_GET_CPC_INFO,,
+                       '** CPC URI Not Found  **' )
+
+ call TraceMessage 'CPC TargetName: '||CpcTargetName
+ call TraceMessage 'CPC Uri: '||CpcUri
 
  return NO_ERROR  /* end function */
 
@@ -422,15 +448,16 @@ GetCpcUri:
  /*******************************************************************/
 GetLparUri:
 
+ call TraceMessage ' '
+ call TraceMessage 'Obtaining LPAR URI, TargetName and Status'
+
  argLPARName = UpperCase(STRIP(arg(1)))
- expectedLPARTargetName = cpcNetaddr||'.'||argLPARName
 
  argUri = CpcUri||'/logical-partitions?name='||argLPARName
  ExpectedHttpStatus = HTTP_STATUS_OK
 
  If DoGet( argUri, CpcTargetName ) <> NO_ERROR Then
     return fatalError( GetRc, '** DoGet( '||argUri||' ) failure **' )
-
 
  If HwirestRequestStatus <> ExpectedHttpStatus Then
    return fatalError( ERROR_GET_LPAR_INFO,,
@@ -441,7 +468,6 @@ GetLparUri:
    return fatalError( ERROR_GET_LPAR_INFO,,
                              '** Parse Failure '||ParseRc||' **' )
 
-
  /* Search the Json response body for the Lpars array */
  ArrayHandle = JSON_findValue( RootHandle,,
                                JSON_ATTR_LOGICAL_PARTITIONS,,
@@ -450,70 +476,63 @@ GetLparUri:
  If ArrayHandle = '' Then
              return fatalError( ERROR_GET_LPAR_INFO,,
                                 '** Array Handle not found **' )
-
  numEntries = JSON_getArrayDim( ArrayHandle )
  If numEntries = '' Then
       return fatalError( ERROR_GET_LPAR_INFO,,
                                 '** Unexpected Array dim error **' )
-
  If numEntries <= 0 Then
       return fatalError( ERROR_GET_LPAR_INFO,,
-                                '** Empty Array **' )
+                                '** LPAR Not Found **' )
+ If numEntries > 1 Then
+   return fatalError( ERROR_GET_LPAR_INFO,,
+                           '** Unexpected Array dim error  **' )
 
- Do i = 0 To numEntries - 1
-   entryHandle = JSON_getArrayEntry( ArrayHandle, i )
-   If entryHandle = '' Then
-     return fatalError( ERROR_GET_LPAR_INFO,,
+  entryHandle = JSON_getArrayEntry( ArrayHandle, 0 )
+    If entryHandle = '' Then
+    return fatalError( ERROR_GET_LPAR_INFO,,
                            '** Unexpected Entry handle error  **' )
-   LparTargetName = JSON_findValue( entryHandle,,
-                                    JSON_ATTR_TARGETNAME,,
-                                    HWTJ_STRING_TYPE )
+  LparTargetName = JSON_findValue( entryHandle,,
+                                   JSON_ATTR_TARGETNAME,,
+                                   HWTJ_STRING_TYPE )
    If LparTargetName = '' Then
      return fatalError( ERROR_GET_LPAR_INFO,,
-                                   '** Unexpected TargetName error  **' )
-   call TraceVerbose 'Checking Lpar with target name: '||LparTargetName
-   If UpperCase(LparTargetName) = expectedLPARTargetName Then
-     Do
-       LparUri = JSON_findValue( entryHandle,,
-                                JSON_ATTR_OBJECTURI,,
-                                HWTJ_STRING_TYPE )
-       If LparUri = '' Then
-             return fatalError( ERROR_GET_LPAR_INFO,,
-                                '** Failed to extract LPAR URI  **' )
+                        '** LPAR TargetName Not Found  **' )
 
-       LparStatus = JSON_findValue( entryHandle,,
+   LparUri = JSON_findValue( entryHandle,,
+                             JSON_ATTR_OBJECTURI,,
+                             HWTJ_STRING_TYPE )
+   If LparUri = '' Then
+     return fatalError( ERROR_GET_LPAR_INFO,,
+                        '** LPAR URI Not Found  **' )
+
+   LparStatus = JSON_findValue( entryHandle,,
                                 JSON_ATTR_STATUS,,
                                 HWTJ_STRING_TYPE )
 
-       If LparStatus = '' Then
-             return fatalError( ERROR_GET_LPAR_INFO,,
-                             '** Failed to extract LPAR STATUS  **' )
-       Leave  /* exit loop on match */
-     End /* endif target name matches */
- End /* endloop thru lpars array */
+   If LparStatus = '' Then
+     return fatalError( ERROR_GET_LPAR_INFO,,
+                        '** LPAR STATUS Not Found  **' )
 
- If LparUri = '' Then
-   return fatalError( ERROR_GET_LPAR_INFO,,
-                                '** Target LPAR Not Found  **' )
+ call TraceMessage 'LPAR TargetName: '||LparTargetName
+ call TraceMessage 'LPAR Uri: '||LparUri
+ call TraceMessage 'LPAR Status: '||LparStatus
+ call TraceMessage ' '
 
- call TraceMessage 'Lpar TargetName: '||LparTargetName
- call TraceMessage 'Lpar Uri: '||LparUri
- call TraceMessage 'Lpar Status: '||LparStatus
+ /************************************************************/
+ /* Here we check LparStatus, as we do not wish to invoke    */
+ /* load against an operating Lpar (or an LPAR with a status */
+ /* of exceptions or acceptable).                            */
+ /* If an activate is needed we indicate that needs to be    */
+ /* done first. You may wish to alter this section to suit   */
+ /* your own purposes.                                       */
+ /************************************************************/
+ If LparStatus = LPAR_STATUS_NOT_ACTIVATED Then
+   return ERROR_NEED_ACTIVATE
+  Else If (LparStatus <> LPAR_STATUS_NOT_OPERATING) Then
+    return fatalError( ERROR_UNEXP_LPAR_STATUS,,
+           '** Unexpected Lpar Status: '||LparStatus||' **' )
 
- /***********************************************************/
- /* Here we check LparStatus, as we do not wish to invoke   */
- /* load against an operating Lpar, but if an activate is   */
- /* needed we indicate that needs to be done first.         */
- /* You may wish to alter or remove this to suit your own   */
- /* purposes.                                               */
- /***********************************************************/
- If LparStatus = LPAR_STATUS_OPERATING Then
-    return fatalError( ERROR_GET_LPAR_INFO,,
-            '** Unexpected Lpar Status '||LparStatus||' **' )
-  Else If LparStatus = LPAR_STATUS_NOT_ACTIVATED Then
-    return ERROR_NEED_ACTIVATE
-
- return NO_ERROR  /* end function */
+return NO_ERROR  /* end function */
 
  /*******************************************************/
  /* Function:  IssueLparActivateCommand                 */
@@ -533,8 +552,9 @@ IssueLparActivateCommand:
  /* use the next-activation-profile-name value for the activate */
  activateRequestBody = '{}'
 
+ call TraceMessage ' '
  call TraceMessage 'Invoke activate with uri: '||activateUri
- call TraceVerbose 'Request Body: '||activateRequestBody
+ call TraceMessage 'Request Body: '||activateRequestBody
 
  ExpectedHttpStatus = HTTP_STATUS_ACCEPTED
 
@@ -583,8 +603,9 @@ IssueLparLoadCommand:
  body4 = '"load-parameter":"'||ARG_LOAD_PARM||'" }'
  loadRequestBody = body1||body2||body3||body4
 
+ call TraceMessage ' '
  call TraceMessage 'Invoke load with uri: '||loadUri
- call TraceVerbose 'Request Body: '||loadRequestBody
+ call TraceMessage 'Request Body: '||loadRequestBody
 
  ExpectedHttpStatus = HTTP_STATUS_ACCEPTED
 
@@ -612,59 +633,6 @@ IssueLparLoadCommand:
 
  return NO_ERROR  /* end function */
 
- /*******************************************************************/
- /* Function:  VerifyNoOptLparStatus                                */
- /*                                                                 */
- /* Make an HWIREST Get request for LPAR status information.        */
- /* Extract the status from the returned Json response body and     */
- /* verify it's not-operating.                                      */
- /*                                                                 */
- /*       /api/cpcs/logical-partitions/{lpar-uri}?                  */
- /*                properties=status & cachecAcceptable=true        */
- /*                                                                 */
- /* Returns: 0 if successful, !0 if not                             */
- /*                                                                 */
- /*******************************************************************/
-VerifyNoOptLparStatus:
-
- argUri = arg(1)
- queryStatusUri = argUri||'?properties=status&cached-acceptable=true'
-
- ExpectedHttpStatus = HTTP_STATUS_OK
-
- If DoGet( argUri, LparTargetName ) <> NO_ERROR Then
-    return fatalError( GetRc, '** DoGet( '||argUri||' ) failure **' )
-
-
- If HwirestRequestStatus <> ExpectedHttpStatus Then
-   return fatalError( ERROR_GET_LPAR_STATUS,,
-         '** Unexpected Http Status '||HwirestRequestStatus||' **' )
-
- /* Parse the response body */
- If JSON_parseJson( ResponseJson ) <> NO_ERROR Then
-   return fatalError( ERROR_GET_LPAR_STATUS,,
-                             '** Parse Failure '||ParseRc||' **' )
-
-
- /* Search the Json response body for the status property */
- LparStatus = JSON_findValue( RootHandle,,
-                               JSON_ATTR_STATUS,,
-                               HWTJ_STRING_TYPE )
-
- call TraceMessage 'Lpar Status: '||LparStatus
-
- /***********************************************************/
- /* Here we check LparStatus, as we do not wish to invoke   */
- /* load against an operating Lpar.                         */
- /* You may wish to alter or remove this to suit your own   */
- /* purposes.                                               */
- /***********************************************************/
- If LparStatus <> LPAR_STATUS_NOT_OPERATING Then
-    return fatalError( ERROR_GET_LPAR_INFO,,
-            '** Unexpected Lpar Status '||LparStatus||' **' )
-
- return NO_ERROR  /* end function */
-
  /*******************************************************/
  /* Function:  PollJobStatus                            */
  /*                                                     */
@@ -675,8 +643,8 @@ VerifyNoOptLparStatus:
  /* is sensed within the allotted time, then consider   */
  /* the outcome to be a fatal error, otherwise consider */
  /* the act of polling, at least, to be successful      */
- /* (whether the caller likes the resulting job status  */
- /* is purely their concern).                           */
+ /* (the caller needs to decide if the resulting job    */
+ /* status is acceptable).                              */
  /*                                                     */
  /* Returns: 0 if successful, !0 if not                 */
  /*******************************************************/
@@ -692,49 +660,59 @@ PollJobStatus:
  PollRc = NO_ERROR
  WaitRc = NO_ERROR
 
- call TraceMessage 'Polling Job Status'
-
  Do While StopPolling = False
+
+ call TraceMessage '  '
+ call TraceMessage 'Polling Job Status'
 
     GetRc = GetJobStatus( argJobUri )
 
     If GetRc = NO_ERROR Then
-       Do
-       If (CommandStatus <> JOB_STATUS_RUNNING) |,
-          (AccumulatedWaitTime >= ArgTimeLimit) Then
-          StopPolling = True
-       Else
+      Do
+        /* check if job is done or canceled        */
+        If (CommandStatus = JOB_STATUS_COMPLETE) |,
+           (CommandStatus = JOB_STATUS_CANCELED) Then
+         StopPolling = True
+        /* job not done, check if time limit exceeded */
+        Else If  (AccumulatedWaitTime >= ArgTimeLimit) Then
           Do
-          call TraceVerbose 'Wait '||argSecondsToWait||' seconds...'
-          AccumulatedWaitTime = AccumulatedWaitTime + argSecondsToWait
+            StopPolling = True
+            PollRc = fatalError( ERROR_POLL,,
+                       '** Time Limit Exceeded **' )
+          End /* time exceeded */
+        Else
+          Do
+            /* wait for specified interval */
+            call TraceMessage 'Wait '||argSecondsToWait||' seconds...'
+            AccumulatedWaitTime = AccumulatedWaitTime + argSecondsToWait
 
-          If RUN_ENV = 'AXREXX' Then
-             WaitRc = AXRWAIT( argSecondsToWait )
-          Else
-             WaitRc = NO_ERROR   /* dummy: address syscall sleep */
+            If RUN_ENV = 'AXREXX' Then
+              WaitRc = AXRWAIT( argSecondsToWait )
+            Else
+              WaitRc = NO_ERROR   /* dummy: address syscall sleep */
 
-          If WaitRc <> NO_ERROR Then
-             Do
-             StopPolling = True
-             PollRc = fatalError( ERROR_POLL,,
-                                  '** Wait failure '||WaitRc||' **' )
-             End /* endif wait failed */
+              If WaitRc <> NO_ERROR Then
+                Do
+                  StopPolling = True
+                  PollRc = fatalError( ERROR_POLL,,
+                             '** Wait failure '||WaitRc||' **' )
+                End /* endif wait failed */
           End /* endif still polling */
-       End /* endif getjobstatus ok */
-     Else
-        Do
+      End /* endif getjobstatus ok */
+    Else
+      Do
         StopPolling = True
         PollRc = fatalError( GetRc,,
                              '** GetJobStatus failure '||GetRc||' **' )
-        End  /* endif get status failed */
-     End  /* endloop */
+      End  /* endif get status failed */
+ End  /* endloop */
 
  return PollRc  /* end function */
 
  /*********************************************************************/
  /* Function:  GetJobStatus                                           */
  /*                                                                   */
- /* The asynch portion of a previously invoked command returned a job */
+ /* The async portion of a previously invoked command returned a job  */
  /* uri of the form:  /api/jobs/{job-id} and invoking an HWIREST GET  */
  /* request for that uri should return a response body containing     */
  /* attributes:                                                       */
@@ -745,30 +723,24 @@ PollJobStatus:
  /*             "complete"                                            */
  /*                                                                   */
  /*  and (only) if "complete" or "canceled"                           */
- /*       "job-status-code":<integer>                                 */
- /*       "job-results":<OBJECT> whose content varies with the        */
- /*                              command                              */
- /*  and (only) if "complete" or "canceled" *AND*                     */
- /*                              job-status-code <> 2xx               */
+ /*      "job-status-code":<integer>                                  */
+ /*      "job-results":<OBJECT> whose content varies with the command */
+ /*  and (only) if job-status-code <> 2xx                             */
  /*       "job-reason-code":<integer>                                 */
  /*                                                                   */
  /* We care primarily about <status>, secondarily about               */
  /*  <job-status-code>, and potentially about <job-reason-code>.      */
- /* The <job-results> object is currently not of interest.            */
  /*                                                                   */
  /* Returns: 0 if the value of <status> is obtained, !0 if not (the   */
  /*          actual success or failure of the job is purely the       */
  /*          caller's concern)                                        */
  /*                                                                   */
- /*                                                                   */
- /* NOTE: Experience shows that we should not rely on the presence of */
- /* a "status":"complete" json attribute, at least in failure cases.  */
- /* That is, the presence of a "job-status-code":<integer> is a more  */
- /* reliable indication of "complete" status.                         */
- /* This status  code is in the style of http status codes, and so    */
- /* anything in { 2xx } is desirable, and any other status codes      */
- /* indicate failure and will be accompanied by                       */
- /* "job-reason-code":<integer>.                                      */
+ /* NOTE: We should not rely solely on the presence of a status       */
+ /* "complete" attribute. The presence of a "job-status-code"         */
+ /* is a more reliable indication of success.  This status code is    */
+ /* an http style code, anything in { 2xx } is desirable,             */
+ /* any other status code indicates failure and will be accompanied   */
+ /* by a "job-reason-code".                                           */
  /*                                                                   */
  /*********************************************************************/
 GetJobStatus:
@@ -779,76 +751,108 @@ GetJobStatus:
  GetRc = DoGet( argUri, LparTargetName )
 
  If GetRc = NO_ERROR Then
-    Do
-    If HwirestRequestStatus = ExpectedHttpStatus Then
+   Do
+   If HwirestRequestStatus = ExpectedHttpStatus Then
+     Do
+     /* Parse the response body */
+     ParseRc = JSON_parseJson( ResponseJson )
+
+     If ParseRc = NO_ERROR Then
        Do
-       /* Parse the response body */
-       ParseRc = JSON_parseJson( ResponseJson )
-
-       If ParseRc = NO_ERROR Then
-          Do
-          JobStatus = JSON_findValue( RootHandle,,
-                                      JSON_ATTR_STATUS,,
-                                      HWTJ_STRING_TYPE )
-
-          Select
-             When JobStatus = JOB_STATUS_RUNNING Then
-                Do
-                CommandStatus = JOB_STATUS_RUNNING
-                call TraceVerbose 'JobStatus: running'
-                End
-             When JobStatus = JOB_STATUS_CANCEL_PENDING Then
-                Do
-                CommandStatus = JOB_STATUS_CANCEL_PENDING
-                call TraceVerbose 'JobStatus: cancel pending'
-                End
-             When JobStatus = JOB_STATUS_CANCELED Then
-                Do
-                CommandStatus = JOB_STATUS_CANCELED
-                call TraceVerbose 'JobStatus: canceled'
-                End
-             Otherwise
-                Do
-                /******************************************************/
-                /* Job status is either "complete", or not present.   */
-                /* In either case, the presence and value of a job    */
-                /* status code is the best indicator of the outcome.  */
-                /* Absence of a status code attribute is unexpected   */
-                /* and treated as a fatal error.  Absence of a reason */
-                /* code indicates success (2xx status).               */
-                /******************************************************/
-                CommandStatus = JOB_STATUS_COMPLETE
-                call TraceVerbose 'JobStatus: complete (or absent)'
-                JobStatusCode = JSON_findValue( RootHandle,,
-                                               JSON_ATTR_JOBSTATUSCODE,,
-                                               HWTJ_NUMBER_TYPE )
-                call TraceMessage 'JobStatusCode: '||JobStatusCode
+       JobStatus = JSON_findValue( RootHandle,,
+                                   JSON_ATTR_STATUS,,
+                                   HWTJ_STRING_TYPE )
+       Select
+         When JobStatus = JOB_STATUS_RUNNING Then
+           Do
+            CommandStatus = JOB_STATUS_RUNNING
+            ExecStatus = NO_ERROR
+            call TraceMessage 'JobStatus: running'
+           End
+         When JobStatus = JOB_STATUS_CANCEL_PENDING Then
+           Do
+            CommandStatus = JOB_STATUS_CANCEL_PENDING
+            ExecStatus = NO_ERROR
+            call TraceMessage 'JobStatus: cancel pending'
+           End
+         When JobStatus = JOB_STATUS_CANCELED Then
+           Do
+            CommandStatus = JOB_STATUS_CANCELED
+            JobStatusCode = JSON_findValue( RootHandle,,
+                JSON_ATTR_JOBSTATUSCODE,,
+                HWTJ_NUMBER_TYPE )
+            call TraceMessasge 'JobStatus: canceled'
+            call TraceMessage 'JobStatusCode: '||JobStatusCode
+            If Substr( JobStatusCode, 1, 1 ) = '2' Then
+              Do
+                ExecStatus = NO_ERROR
+                call TraceMessage 'Job completed successfully'
+              End /* endif job successful */
+            Else
+              Do
+                ExecStatus = ERROR_GET_JOB_RESULT
+                call TraceMessage '*ERROR* Job unsuccessful'
                 JobReasonCode = JSON_findValue( RootHandle,,
-                                               JSON_ATTR_JOBREASONCODE,,
-                                               HWTJ_NUMBER_TYPE )
+                                JSON_ATTR_JOBREASONCODE,,
+                                HWTJ_NUMBER_TYPE )
                 call TraceMessage 'JobReasonCode: '||JobReasonCode
-                If JobStatusCode = '' Then
-                   return fatalError( ERROR_GET_JOB_STATUS,,
-                                      '** job status code absent **' )
-                End /* end otherwise */
-          End  /* end select */
+                JobResults = JSON_findValue( RootHandle,,
+                                JSON_ATTR_JOBMESSAGE,,
+                                HWTJ_STRING_TYPE )
+                call TraceMessage 'JobResults: '||JobResults
+              End  /* endif job failure indicated */
+           End /* job canceled */
+         When JobStatus = JOB_STATUS_COMPLETE Then
+           Do
+            CommandStatus = JOB_STATUS_COMPLETE
+            JobStatusCode = JSON_findValue( RootHandle,,
+                JSON_ATTR_JOBSTATUSCODE,,
+                HWTJ_NUMBER_TYPE )
+            call TraceMessage 'JobStatus: complete'
+            call TraceMessage 'JobStatusCode: '||JobStatusCode
+            If Substr( JobStatusCode, 1, 1 ) = '2' Then
+              Do
+                ExecStatus = NO_ERROR
+                call TraceMessage 'Job completed successfully'
+              End /* endif job successful */
+            Else
+              Do
+                ExecStatus = ERROR_GET_JOB_RESULT
+                call TraceMessage '*ERROR* Job unsuccessful'
+                JobReasonCode = JSON_findValue( RootHandle,,
+                                JSON_ATTR_JOBREASONCODE,,
+                                HWTJ_NUMBER_TYPE )
+                call TraceMessage 'JobReasonCode: '||JobReasonCode
+                JobResults = JSON_findValue( RootHandle,,
+                                JSON_ATTR_JOBMESSAGE,,
+                                HWTJ_STRING_TYPE )
+                call TraceMessage 'JobResults: '||JobResults
+              End  /* endif job failure indicated */
+           End /* jobstatus complete */
+         Otherwise
+           Do
+            /********************************************************/
+            /* Job status does not match any expected value         */
+            /********************************************************/
+              return fatalError( ERROR_GET_JOB_STATUS,,
+                               '** unexpected job status  **'||JobStatus )
+         End /* end otherwise */
+       End  /* end select */
 
-          End /* endif parse ok */
-       Else
-          return fatalError( ERROR_GET_JOB_STATUS,,
-                             '** parse failure **' )
-       End /* endif http status ok */
-    Else
+     End /* endif parserc ok */
+     Else
        return fatalError( ERROR_GET_JOB_STATUS,,
-                    '** Unexpected HTTP status '||HwirestRequestStatus )
-    End  /* endif get ok */
+                          '** parse failure **' )
+   End /* endif http status ok */
+   Else
+     return fatalError( ERROR_GET_JOB_STATUS,,
+                 '** Unexpected HTTP status '||HwirestRequestStatus )
+ End  /* endif doget ok */
  Else
     return fatalError( ERROR_GET_JOB_STATUS,,
                        '** DoGet '||argUri||' failure **' )
 
- call TraceVerbose 'CommandStatus = '||CommandStatus
-
- return NO_ERROR  /* end function */
+ return ExecStatus  /* end function */
 
 
  /*****************************************************************/
@@ -877,6 +881,8 @@ DoGet:
  Request.REQUESTBODY = ''
  Request.CLIENTCORRELATOR = ''
  Request.ENCODING = 0
+ HwirestRequestStatus = ''
+ ResponseJson = ''
 
  call TraceMessage 'REQUEST ----->'
  call TraceMessage '>GET '|| Request.URI
@@ -945,6 +951,8 @@ DoPost:
  Request.REQUESTBODY = argRequestBody
  Request.CLIENTCORRELATOR = ''
  Request.ENCODING = 0
+ HwirestRequestStatus = ''
+ ResponseJson = ''
 
  call TraceMessage 'REQUEST ----->'
  call TraceMessage '>POST '|| Request.URI
@@ -986,40 +994,6 @@ DoPost:
 
  return NO_ERROR
 
-
- /*******************************************************************/
- /* Function:  GetExecResult                                        */
- /*                                                                 */
- /* Issue summary "end of exec messages" and return the completion  */
- /* code for this exec.                                             */
- /*                                                                 */
- /* Returns: integer value                                          */
- /*******************************************************************/
-GetExecResult:
-
- If ExecStatus = NO_ERROR Then
-   Do
-    If CommandStatus <> JOB_STATUS_COMPLETE Then
-       Do
-         ExecStatus = ERROR_GET_JOB_STATUS
-         call TraceMessage '*ERROR* Job did not complete'
-       End /* endif job did not complete */
-    Else
-       Do
-         If Substr( JobStatusCode, 1, 1 ) = '2' Then
-          call TraceMessage '*SUCCESS* Job completed successfully'
-         Else
-          Do
-            ExecStatus = ERROR_GET_JOB_RESULT
-            call TraceMessage '*ERROR* Job completed unsuccessfully'
-          End  /* endif job failure indicated */
-       End /* endif job completed */
-   End  /* endif no mechanical errors */
-
- call TraceMessage 'Job Result = '||ExecStatus
-
- return ExecStatus
-
 /********************************************************/
 /* Procedure: surfaceResponse()                         */
 /*            parse through the response parm and if    */
@@ -1043,46 +1017,42 @@ surfaceResponse:
 
   if successIndex = 1 then
     do /* SE responded successfully */
-      call TraceMessage 'SE DateTime: ('||traceResponse.responsedate||')'
-      call TraceMessage 'SE requestId: (' || traceResponse.requestId || ')'
+     call TraceMessage 'SE DateTime: ('||traceResponse.responsedate||')'
+     call TraceMessage 'SE requestId: (' || traceResponse.requestId || ')'
 
-      if traceResponse.httpstatusNum = '201' Then
-        call TraceMessage 'Location Response: (' || traceResponse.location || ')'
+     if traceResponse.httpstatusNum = '201' Then
+      call TraceMessage 'Location Response: (' || traceResponse.location || ')'
 
-      if  traceResponse.responsebody <> '' Then
-        do
-          call TraceMessage 'Response Body: (' || traceResponse.responsebody || ')'
-          return traceResponse.responsebody
-        end
+     if  traceResponse.responsebody <> '' Then
+      do
+       call TraceMessage 'Response Body: (' || traceResponse.responsebody || ')'
+       return traceResponse.responsebody
+      end
     end /* SE responded successfully */
   else
     do /* error path */
-      call TraceMessage 'Reason Code: ('||traceResponse.reasoncode||')'
+     call TraceMessage 'Reason Code: ('||traceResponse.reasoncode||')'
 
-      if traceResponse.responsedate <> '' then
-        call TraceMessage 'SE DateTime: ('||traceResponse.responsedate||')'
+     if traceResponse.responsedate <> '' then
+       call TraceMessage 'SE DateTime: ('||traceResponse.responsedate||')'
 
-      if traceResponse.requestId <> '' Then
-        call TraceMessage 'SE requestId: (' || traceResponse.requestId || ')'
+     if traceResponse.requestId <> '' Then
+       call TraceMessage 'SE requestId: (' || traceResponse.requestId || ')'
 
-      if traceResponse.responsebody <> '' Then
-        do /* an error occurred */
-          call JSON_parseJson traceResponse.responsebody
+     if traceResponse.responsebody <> '' Then
+       do /* an error occurred */
+         call JSON_parseJson traceResponse.responsebody
 
-          if RESULT <> 0 then
-            call TraceMessage 'failed to parse response'
-          else
-            do
-              errmessage=JSON_findValue(0,JSON_ATTR_ERRMSG, HWTJ_STRING_TYPE)
-              bcpiiErr=JSON_findValue(0, JSON_ATTR_BCPIIERR, HWTJ_BOOLEAN_TYPE)
-              if bcpiiErr = 'true' then
-                call TraceMessage '*** BCPii generated error message:('||errmessage||')'
-              else
-                call TraceMessage '*** SE generated error message:('||errmessage||')'
-
-              /* uncomment to view the full Error Response Body:
-              call TraceVerbose 'Complete Response Body: (' || traceResponse.responsebody || ')'
-              */
+         if RESULT <> 0 then
+          call TraceMessage 'failed to parse response'
+         else
+          do
+            errmessage=JSON_findValue(0,JSON_ATTR_ERRMSG, HWTJ_STRING_TYPE)
+            bcpiiErr=JSON_findValue(0, JSON_ATTR_BCPIIERR, HWTJ_BOOLEAN_TYPE)
+            if bcpiiErr = 'true' then
+              call TraceMessage '*** BCPii error message:('||errmessage||')'
+            else
+              call TraceMessage '*** SE error message:('||errmessage||')'
             end /* bcpii err */
         end /* response body */
     end /* error path */
@@ -1110,7 +1080,7 @@ JSON_parseJson:
 
  jsonTextBody = arg(1)
 
- call TraceVerbose 'Invoke Json Parser'
+ call TraceJSONVerbose 'Invoke Json Parser'
 
  /***********************************/
  /* Call the HWTJPARS toolkit api.  */
@@ -1130,7 +1100,7 @@ JSON_parseJson:
     return fatalError( '** hwtjpars failure **' )
     end /* endif hwtjpars failure */
 
- call TraceVerbose 'JSON parse successful'
+ call TraceJSONVerbose 'JSON parse successful'
 
  return NO_ERROR  /* end function */
 
@@ -1148,7 +1118,7 @@ JSON_parseJson:
  /**********************************************************/
 JSON_termParser:
 
- call TraceVerbose 'Terminate Json Parser'
+ call TraceJSONVerbose 'Terminate Json Parser'
 
  /**********************************/
  /* Call the HWTJTERM toolkit api. */
@@ -1166,7 +1136,7 @@ JSON_termParser:
     return fatalError( '** hwtjterm failure **' )
     end /* endif hwtjterm failure */
 
- call TraceVerbose 'Json Parser terminated'
+ call TraceJSONVerbose 'Json Parser terminated'
  return NO_ERROR  /* end function */
 
 
@@ -1190,9 +1160,9 @@ JSON_findValue:
  /********************************************************/
  /* Search the specified object for the specified name   */
  /********************************************************/
- call TraceVerbose 'Invoke Json Search for '||searchName
- call TraceVerbose 'ObjectHandle = '||objectHandle
- call TraceVerbose 'ExpectedType = '||expectedType
+ call TraceJSONVerbose 'Invoke Json Search for '||searchName
+ call TraceJSONVerbose 'ObjectHandle = '||objectHandle
+ call TraceJSONVerbose 'ExpectedType = '||expectedType
 
  /********************************************************/
  /* Invoke the HWTJSRCH toolkit api.                     */
@@ -1233,7 +1203,7 @@ JSON_findValue:
  resultType = JSON_getType( searchResult )
  if resultType <> expectedType then
     do
-    call TraceVerbose '** Type mismatch ( '||resultType,
+    call TraceJSONVerbose '** Type mismatch ( '||resultType,
                                      ||', '||expectedType||' ) **'
     return ''
     end /* endif unexpected type */
@@ -1255,7 +1225,7 @@ JSON_findValue:
  if expectedType == HWTJ_STRING_TYPE,
             | expectedType == HWTJ_NUMBER_TYPE then
     do
-    call TraceVerbose 'Invoke Json Get Value'
+    call TraceJSONVerbose 'Invoke Json Get Value'
     /***********************************/
     /* Call the HWTJGVAL toolkit api.  */
     /***********************************/
@@ -1283,7 +1253,7 @@ JSON_findValue:
  /****************************************************/
   if expectedType == HWTJ_BOOLEAN_TYPE then
     do
-    call TraceVerbose 'Invoke Json Get Boolean Value'
+    call TraceJSONVerbose 'Invoke Json Get Boolean Value'
 
     /***********************************/
     /* Call the HWTJGBOV toolkit api.  */
@@ -1332,7 +1302,7 @@ JSON_getType:
 
  searchResult = arg(1)
 
- call TraceVerbose 'Invoke Json Get Type'
+ call TraceJSONVerbose 'Invoke Json Get Type'
 
  /***********************************/
  /* Call the HWTJGJST toolkit api.  */
@@ -1492,7 +1462,7 @@ TraceMessage:
 
  /*
  Uncomment if you'd like a prefix for the message:
- TraceMsg = THIS_EXEC_NAME||'>'||arg(1)
+ TraceMsg = THIS_EXEC||'>'||arg(1)
  */
  TraceMsg = arg(1)
  TraceRc = NO_ERROR
@@ -1509,11 +1479,11 @@ TraceMessage:
 
 
  /*******************************************************************/
- /* Procedure:  TraceVerbose                                        */
+ /* Procedure:  TraceJSONVerbose                                        */
  /*                                                                 */
  /* Invoke TraceMessage if and only if VERBOSE is desired           */
  /*******************************************************************/
-TraceVerbose:
+TraceJSONVerbose:
 
  If VERBOSE Then
     call TraceMessage arg(1)
@@ -1536,7 +1506,7 @@ UpperCase:
  return upString /* end function */
 
 
- /**************************************************/
+/**************************************************/
 /* Function:  JSON_getArrayDim                    */
 /*                                                */
 /* Return the number of entries in the array      */
@@ -1550,7 +1520,7 @@ JSON_getArrayDim:
 
  arrayHandle = arg(1)
  arrayDim = 0
- call TraceVerbose 'Getting array dimension'
+ call TraceJSONVerbose 'Getting array dimension'
 
  /***********************************/
  /* Call the toolkit HWTJGNUE api.  */
@@ -1592,7 +1562,7 @@ JSON_getArrayEntry:
  whichEntry = arg(2)
 
  result = ''
- call TraceVerbose 'Getting array entry'
+ call TraceJSONVerbose 'Getting array entry'
 
  /***********************************/
  /* Call the toolkit HWTJGAEN api.  */
@@ -1625,7 +1595,7 @@ VerifyRequiredArgs:
   parmsRC = NO_ERROR
 
   If LENGTH(ARG_CPC_NAME) > 0 Then
-   call TraceVerbose 'ARG_CPC_NAME = '||ARG_CPC_NAME
+   call TraceMessage 'CPC NAME = '||ARG_CPC_NAME
   Else
    Do
      parmsRC = ERROR_ARGS
@@ -1633,23 +1603,15 @@ VerifyRequiredArgs:
    End
 
   If LENGTH(ARG_LPAR_NAME) > 0 Then
-   call TraceVerbose 'ARG_LPAR_NAME = '||ARG_LPAR_NAME
+   call TraceMessage 'LPAR NAME = '||ARG_LPAR_NAME
   Else
    Do
      parmsRC = ERROR_ARGS
      call TraceMessage '*ERROR* ARG_LPAR_NAME value missing or invalid'
    End
 
-  If LENGTH(ARG_NET_ID) > 0 Then
-   call TraceVerbose 'ARG_NET_ID = '||ARG_NET_ID
-  Else
-   Do
-     parmsRC = ERROR_ARGS
-     call TraceMessage '*ERROR* ARG_NET_ID value missing or invalid'
-   End
-
   If LENGTH(ARG_LOAD_ADDR) > 0 Then
-   call TraceVerbose 'ARG_LOAD_ADDR = '||ARG_LOAD_ADDR
+   call TraceMessage 'LOAD Address = '||ARG_LOAD_ADDR
   Else
    Do
      parmsRC = ERROR_ARGS
@@ -1657,7 +1619,7 @@ VerifyRequiredArgs:
    End
 
   If LENGTH(ARG_LOAD_PARM) > 0 Then
-   call TraceVerbose 'ARG_LOAD_PARM = '||ARG_LOAD_PARM
+   call TraceMessage 'LOAD Parm = '||ARG_LOAD_PARM
   Else
    Do
      parmsRC = ERROR_ARGS
