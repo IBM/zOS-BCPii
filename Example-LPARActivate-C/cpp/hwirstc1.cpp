@@ -378,12 +378,12 @@ bool getCPCInfo(char *CPCname)
   request.httpMethod = HWI_REST_GET;
   request.requestTimeout = 0x00002688;
 
-  /* Initialize the response structure with the address
+  /* Initialize the response structure with the address
     and length of the pre-allocated data areas.
     When the service returns, the data areas will contain
     the response value for that specific field and the data area
     length will be updated to reflect the length of that value.
-  */
+  */
   memset(responseBody, 0, defaultLen15MB);
   memset(responseDate, 0, defaultLen);
   memset(requestId, 0, defaultLen);
@@ -401,7 +401,7 @@ bool getCPCInfo(char *CPCname)
       &response);
 
   /* An httpStatus in the 200 range indicates the request was successful
-  NOTE: A success does not mean the cpc info was returned, 
+  NOTE: A success does not mean the cpc info was returned,
   the response body may contain an empty cpcs array because
   the SE was not able to match the CPC name or the user ID was
   */
@@ -936,7 +936,8 @@ void printConstTextStr(int len, const char *text, char *description)
            description, len, len);
   }
 
-  if (len > 0 && text[0] != '\0')
+  if (len > 0 && len < defaultLen15MB &&
+      text && text[0] != '\0')
   {
     memcpy(diagTextString, text, len);
     diagTextString[len] = '\0';
@@ -970,7 +971,8 @@ void printTextStr(int len,
 	 * Clone the diag text area into a buffer which
 	 * allows C semantics (null-termination)
 	 ***********************************************/
-  if (len > 0 && text[0] != '\0')
+  if (len > 0 && len < defaultLen15MB &&
+      text && text[0] != '\0')
   {
     memcpy(diagTextString, text, len);
     diagTextString[len] = '\0';
@@ -1147,10 +1149,10 @@ void traceFailureResponse(RESPONSE_PARM_TYPE *pParm)
     }
 
     /* In the case of BCPii flagging the error, if that occurred
-       when processing the SE response, then some of the other
+       when processing the SE response, then some of the other
        response fields may contain content to tie the 'failed'
        response back to the SE
-    */
+    */
     printTextStr(pParm->requestIdLen, (char *)pParm->requestId, "requestId",
                  (char **)&pParm->requestId);
 
