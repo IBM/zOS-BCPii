@@ -81,7 +81,7 @@ This sample uses BCPii HWIREST REXX interface to list custom user groups and gro
 - [**MVS System Codes: BCPii System Code '042'X**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.5.0/com.ibm.zos.v2r5.ieah700/idg8313.htm)
 - [**MVS System Messages, Vol 6 (GOS-IEA) HWI mesages**](https://www.ibm.com/docs/en/zos/2.5.0?topic=iea-hwi-messages)
 - [**z/OS MVS Diagnosis: Tools and Service Aids - SYSBCPII component trace**](https://www.ibm.com/docs/en/zos/2.5.0?topic=trace-requesting-sysbcpii)
-- [**zOS Hot Topics: BCPii - A RESTed development**](https://zos-hot-topics.com/2022/rest-enabled-bcpii/)
+- [**zOS Hot Topics: BCPii - A RESTed development**](https://publibz.boulder.ibm.com/zoslib/pdf/BCPii-A_RESTe_development.pdf)
 
 <br/><br/><b>Other useful references:</b>
 - [**z/OS client web enablement toolkit: JSON Parser**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.5.0/com.ibm.zos.v2r5.ieac100/ieac1-cwe-json.htm)
