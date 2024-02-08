@@ -1,7 +1,7 @@
 /* START OF SPECIFICATIONS ********************************************
 * Beginning of Copyright and License                                  *
 *                                                                     *
-* Copyright IBM Corp. 2021, 2023                                      *
+* Copyright IBM Corp. 2021, 2024                                      *
 *                                                                     *
 * Licensed under the Apache License, Version 2.0 (the "License");     *
 * you may not use this file except in compliance with the License.    *
@@ -367,7 +367,7 @@ bool getCPCInfo(char *CPCname)
   char *responseBody = (char *)malloc(defaultLen15MB);
   char *responseDate = (char *)malloc(defaultLen);
   char *requestId = (char *)malloc(defaultLen);
-  
+
   memset(uri, 0, defaultLen2K);
   strcpy(uri, "/api/cpcs?name=");
   strncat(uri, CPCname, strlen(CPCname));
@@ -580,7 +580,7 @@ bool getLPARInfo(char *LPARname)
     strncat(uri, LPARname, strlen(LPARname));
     parseForUri = true;
   }
-  
+
   char *targetName = (char *)malloc(defaultLen);
   char *responseBody = (char *)malloc(defaultLen15MB);
   char *responseDate = (char *)malloc(defaultLen);
@@ -924,8 +924,8 @@ bool isJobRunning(char *uriArg, char *targetNameArg, char **jobStatus)
 /*
  * Method: printConstTextStr
  *
- * Print out the contents of the constant string if the string
- * length is greater than 0
+ * Print out the contents of the constant string if the string is:
+ * not null, not empty, and within the maximum allowable size of 15 Megabytes.
  */
 void printConstTextStr(int len, const char *text, char *description)
 {
@@ -949,8 +949,8 @@ void printConstTextStr(int len, const char *text, char *description)
 /*
  * Method: printTextStr
  *
- * Print out the contents of the string if the string
- * length is greater than 0
+ * Print out the contents of the string if the string is:
+ * not null, not empty, and within the maximum allowable size of 15 Megabytes.
  */
 void printTextStr(int len,
                   char *text,
