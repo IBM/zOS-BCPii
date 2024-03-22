@@ -72,17 +72,18 @@ This sample uses BCPii HWIREST REXX interface to list custom user groups and gro
 
 
 <br/><br/><b>Publication References:</b>
-- Syntax of HWIREST and other useful BCPii information: [**IBM z/OS MVS Programming: Callable Services for High-Level Languages**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.5.0/com.ibm.zos.v2r5.ieac100/uhmis.htm)
-    - [**z/OS MVS Programming: Callable Services for High-Level Languages PDF**](https://www-40.ibm.com/servers/resourcelink/svc00100.nsf/pages/zOSV2R5sa231377?OpenDocument)
+- Syntax of HWIREST and other useful BCPii information: [**IBM z/OS MVS Programming: Callable Services for High-Level Languages**](https://www.ibm.com/docs/en/zos/3.1.0?topic=services-base-control-program-internal-interface-bcpii)
 
-- Supported REST API operations: [**Hardware Management Console Web Services API, Appendix A, available on Resource Link:**](http://www.ibm.com/servers/resourcelink) <br/> Library -> z15 or higher -> Hardware Management Console Web Services API)
+- REST API operations documentation, including HTTP Status, error reason codes, etc.
+    - [**Hardware Management Console Web Services API**](https://www.ibm.com/docs/en/systems-hardware/zsystems/3932-A02?topic=library-hardware-management-console-web-services-api-version-2160)
 
-- [**MVS System Management Facilities (SMF): BCPii SMF 106**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.5.0/com.ibm.zos.v2r5.ieag200/rec106.htm)
-- [**MVS System Codes: BCPii System Code '042'X**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.5.0/com.ibm.zos.v2r5.ieah700/idg8313.htm)
-- [**MVS System Messages, Vol 6 (GOS-IEA) HWI mesages**](https://www.ibm.com/docs/en/zos/2.5.0?topic=iea-hwi-messages)
-- [**z/OS MVS Diagnosis: Tools and Service Aids - SYSBCPII component trace**](https://www.ibm.com/docs/en/zos/2.5.0?topic=trace-requesting-sysbcpii)
-- [**zOS Hot Topics: BCPii - A RESTed development**](https://zos-hot-topics.com/2022/rest-enabled-bcpii/)
+- [**MVS System Management Facilities (SMF): BCPii SMF 106**](https://www.ibm.com/docs/en/zos/3.1.0?topic=records-record-type-106-x6a-bcpii-activity)
+- [**MVS System Codes: BCPii System Code '042'X**](https://www.ibm.com/docs/en/zos/3.1.0?topic=codes-042)
+- [**MVS System Messages, Vol 6 (GOS-IEA) HWI mesages**](https://www.ibm.com/docs/en/zos/3.1.0?topic=iea-hwi-messages)
+- [**z/OS MVS Diagnosis: Tools and Service Aids - SYSBCPII component trace**](https://www.ibm.com/docs/en/zos/3.1.0?topic=trace-requesting-sysbcpii)
+- [**zOS Hot Topics: BCPii - A RESTed development**](https://www.ibm.com/support/z-content-solutions/hot-topics/)
+    - 2022 Hot Topics -> BCPii - A RESTed development 
 
 <br/><br/><b>Other useful references:</b>
-- [**z/OS client web enablement toolkit: JSON Parser**](https://www.ibm.com/support/knowledgecenter/SSLTBW_2.5.0/com.ibm.zos.v2r5.ieac100/ieac1-cwe-json.htm)
+- [**z/OS client web enablement toolkit: JSON Parser**](https://www.ibm.com/docs/en/zos/3.1.0?topic=toolkit-zos-json-parser)
 - [**z/OS client web enablement toolkit github**](https://github.com/IBM/zOS-Client-Web-Enablement-Toolkit)
